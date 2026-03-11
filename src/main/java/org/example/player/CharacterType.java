@@ -22,12 +22,12 @@ public enum CharacterType {
     ILDE_JAN_FIGUERAS(
             "Ilde Jan Figueras",
             "The Swift",
-            "Always moving, always first. Ilde acts on instinct.\nShe was already running when the others were still standing."
+            "Always moving, always first. Ilde acts on instinct.\nHe was already running when the others were still standing."
     ),
     GAILE_AMOLONG(
             "Gaile Amolong",
             "The Resilient",
-            "Takes the hit and keeps going. Gaile doesn't quit.\nShe was the last one to fall unconscious."
+            "Takes the hit and keeps going. Gaile doesn't quit.\nHe was the last one to fall unconscious."
     ),
     JAMUEL_BACUS(
             "Jamuel Bacus",
