@@ -79,3 +79,13 @@ This matches the note that generalization represents an “is-a” relationship.
 ## Short explanation for reporting
 
 “Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight.” 
+
+## Related documents
+
+This use case diagram is intentionally kept simple.  
+More detail is documented in:
+
+- [use-case-specifications.md](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/docs/use-case-specifications.md)
+- [class-diagram.puml](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/docs/class-diagram.puml)
+- [oop-design-notes.md](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/docs/oop-design-notes.md)
+- [system-overview.md](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/docs/system-overview.md)

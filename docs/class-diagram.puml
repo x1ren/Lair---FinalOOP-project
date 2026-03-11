@@ -1,0 +1,81 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "org.example" {
+  class Main
+}
+
+package "org.example.scenes" {
+  class IntroScene
+  class CharacterSelectScene
+  class WeaponSelectScene
+  class GameScene
+}
+
+package "org.example.player" {
+  enum CharacterType
+}
+
+package "org.example.engines" {
+  abstract class GameLoop
+  class InputHandler
+  class CollisionManager
+}
+
+package "org.example.gameplay" {
+  abstract class GameObject
+  class PlayerActor
+  class EnemyActor
+  class Projectile
+  class PlatformTile
+  class StageDefinition
+  class "EntityManager<T extends GameObject>" as EntityManager
+}
+
+package "org.example.weapons" {
+  abstract class Weapon
+  class AssaultRifle
+  class SMG
+  class Shotgun
+  class Sniper
+  class LMG
+  class WeaponFactory
+  enum WeaponType
+}
+
+Main --> IntroScene
+IntroScene --> CharacterSelectScene
+CharacterSelectScene --> WeaponSelectScene
+WeaponSelectScene --> GameScene
+
+GameScene --> CharacterType
+GameScene --> Weapon
+GameScene --> InputHandler
+GameScene --> CollisionManager
+GameScene --> GameLoop
+GameScene --> PlayerActor
+GameScene --> EnemyActor
+GameScene --> Projectile
+GameScene --> PlatformTile
+GameScene --> StageDefinition
+GameScene --> EntityManager
+
+PlayerActor --|> GameObject
+EnemyActor --|> GameObject
+Projectile --|> GameObject
+PlatformTile --|> GameObject
+
+EntityManager ..> GameObject
+EnemyActor --> PlayerActor
+CharacterType --> Weapon
+
+AssaultRifle --|> Weapon
+SMG --|> Weapon
+Shotgun --|> Weapon
+Sniper --|> Weapon
+LMG --|> Weapon
+WeaponFactory --> Weapon
+Weapon --> WeaponType
+
+@enduml
