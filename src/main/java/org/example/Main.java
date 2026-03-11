@@ -1,23 +1,34 @@
 package org.example;
+
+import org.example.scenes.IntroScene;
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main extends Application{
+public class Main extends Application {
+
+    public static final int    WIDTH  = 1280;
+    public static final int    HEIGHT = 720;
+    public static final String TITLE  = "THE LAIR";
+
+    private static Stage primaryStage;
+
     @Override
     public void start(Stage stage) {
-        Label label = new Label("JavaFX Works!");
-        Scene scene = new Scene(label, 400, 200);
+        primaryStage = stage;
+        stage.setTitle(TITLE);
+        stage.setResizable(false);
 
-        stage.setTitle("Test");
-        stage.setScene(scene);
+        // Flow: IntroScene → CharacterSelectScene → WeaponSelectScene → GameScene
+        IntroScene intro = new IntroScene();
+        stage.setScene(intro.getScene());
         stage.show();
     }
 
-    public static void main(String[] args) {
-        launch();
+    public static void setScene(javafx.scene.Scene scene) {
+        primaryStage.setScene(scene);
     }
+
+    public static Stage getStage() { return primaryStage; }
+
+    public static void main(String[] args) { launch(args); }
 }
