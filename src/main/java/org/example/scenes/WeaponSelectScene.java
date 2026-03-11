@@ -270,13 +270,13 @@ public class WeaponSelectScene {
         gc.setFont(Font.font("Courier New", 11));
         gc.setFill(Color.color(0.15, 0.9, 0.4, 0.8));
         String statsLine = String.format(
-                "HP: %d   |   Speed: %.0f px/s   |   Jump: %.0f   |   DMG: %d/shot   |   Mag: %d   |   Reload: %.1fs",
-                CharacterType.BASE_HEALTH,
+                "HP: %d   |   Logic: %d   |   Mana: %d   |   Speed: %.0f px/s   |   Jump: %.0f   |   Weapon DMG: %d",
+                character.getHealth(),
+                character.getLogic(),
+                character.getMana(),
                 finalSpeed,
                 finalJump,
-                selected.getDamage(),
-                selected.getMagazineSize(),
-                selected.getReloadTime()
+                selected.getDamage()
         );
         gc.fillText(statsLine, W / 2.0 - cw(statsLine, 11) / 2, panelY + panelH - 10);
     }
@@ -346,10 +346,8 @@ public class WeaponSelectScene {
     }
 
     private void launchGame() {
-        // TODO: pass character + weapon to GameScene
-        // GameScene game = new GameScene(character, selected);
-        // Main.setScene(game.getScene());
-        System.out.println("Starting game with: " + character.name + " + " + selected.getName());
+        GameScene game = new GameScene(character, selected);
+        Main.setScene(game.getScene());
     }
 
     private double cw(String text, double size) {

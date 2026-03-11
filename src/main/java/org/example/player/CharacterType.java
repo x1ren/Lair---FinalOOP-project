@@ -1,53 +1,121 @@
 package org.example.player;
 
 /**
- * ENCAPSULATION
+ * Defines the five survivors of THE LAIR.
  *
- * Defines the 5 playable characters from THE LAIR.
- * All share identical base stats — the weapon chosen
- * applies multipliers on top of these values.
+ * The enum stores the story-facing RPG stats so scenes can display
+ * real character data without introducing extra model classes yet.
  */
 public enum CharacterType {
 
     JOSEPH_JIMENEZ(
             "Joseph Jimenez",
-            "The Tactician",
-            "Calculated and composed. Joseph thinks before he acts.\nHe was the one who wanted to stay and finish the project."
+            "Frontline Assault",
+            "Heavy damage frontliner with burst output.",
+            95, 90, 45,
+            "Burst Drive",
+            "Shockwave Punch",
+            "Adrenal Lock"
     ),
     IBEN_ANOOS(
             "Iben Anoos",
-            "The Silent One",
-            "Few words, sharp instincts. Iben notices what others miss.\nHe sensed something wrong before the meteor hit."
+            "Mobility Specialist",
+            "Fast precision attacker with strong evasive control.",
+            70, 85, 65,
+            "Phase Dash",
+            "Split Strike",
+            "Evasion Pulse"
     ),
     ILDE_JAN_FIGUERAS(
             "Ilde Jan Figueras",
-            "The Swift",
-            "Always moving, always first. Ilde acts on instinct.\nHe was already running when the others were still standing."
+            "Defensive Controller",
+            "Highest durability and battlefield control.",
+            100, 70, 60,
+            "Barrier Pulse",
+            "Ground Lock",
+            "Counter Surge"
     ),
     GAILE_AMOLONG(
             "Gaile Amolong",
-            "The Resilient",
-            "Takes the hit and keeps going. Gaile doesn't quit.\nHe was the last one to fall unconscious."
+            "Adaptive Tactical Fighter",
+            "Balanced fighter who scales through aura control.",
+            75, 80, 90,
+            "Aura Thread",
+            "Analyze Weakness",
+            "Overclock"
     ),
     JAMUEL_BACUS(
             "Jamuel Bacus",
-            "The Relentless",
-            "He doesn't stop. Not for exhaustion, not for pain.\nJamuel was already on his feet when the others woke."
+            "Energy Specialist",
+            "Highest mana control, lowest physical output.",
+            65, 60, 100,
+            "Mana Pulse",
+            "Chain Reaction",
+            "Reserve Conversion"
     );
 
     public final String name;
     public final String title;
     public final String lore;
 
-    // Base stats — SAME for all characters
-    public static final int    BASE_HEALTH = 10;
-    public static final double BASE_SPEED  = 260.0;
-    public static final double BASE_JUMP   = -520.0;
+    private final int health;
+    private final int logic;
+    private final int wisdom;
+    private final String skillOne;
+    private final String skillTwo;
+    private final String skillThree;
 
-    CharacterType(String name, String title, String lore) {
-        this.name  = name;
+    public static final double BASE_SPEED = 260.0;
+    public static final double BASE_JUMP  = -520.0;
+
+    CharacterType(String name, String title, String lore,
+                  int health, int logic, int wisdom,
+                  String skillOne, String skillTwo, String skillThree) {
+        this.name = name;
         this.title = title;
-        this.lore  = lore;
+        this.lore = lore;
+        this.health = health;
+        this.logic = logic;
+        this.wisdom = wisdom;
+        this.skillOne = skillOne;
+        this.skillTwo = skillTwo;
+        this.skillThree = skillThree;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public int getLogic() {
+        return logic;
+    }
+
+    public int getWisdom() {
+        return wisdom;
+    }
+
+    public int getMana() {
+        return wisdom * 2;
+    }
+
+    public int getBasicAttack() {
+        return (int) Math.round(logic * 0.35);
+    }
+
+    public String getSkillOne() {
+        return skillOne;
+    }
+
+    public String getSkillTwo() {
+        return skillTwo;
+    }
+
+    public String getSkillThree() {
+        return skillThree;
+    }
+
+    public String getSkillSummary() {
+        return skillOne + "  |  " + skillTwo + "  |  " + skillThree;
     }
 
     public double getFinalSpeed(org.example.weapons.Weapon weapon) {

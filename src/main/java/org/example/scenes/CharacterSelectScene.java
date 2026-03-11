@@ -109,7 +109,7 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 13));
         gc.setFill(Color.color(0.55, 0.55, 0.55));
-        String hint = "Sir Khai asked. Only you know the answer.";
+        String hint = "Choose the survivor whose aura bonded with LAIR.";
         gc.fillText(hint, W / 2.0 - computeW(hint, 13) / 2, 128);
 
         // ── Cards ─────────────────────────────────────────────
@@ -187,9 +187,8 @@ public class CharacterSelectScene {
         gc.setFont(Font.font("Georgia", FontWeight.BOLD, 14));
         gc.setFill(selected ? Color.WHITE : Color.color(0.8, 0.8, 0.8));
         String[] nameParts = c.name.split(" ");
-        gc.fillText(nameParts[0], x + CARD_W / 2 - computeW(nameParts[0], 14) / 2, textY);
-        if (nameParts.length > 1) {
-            gc.fillText(nameParts[1], x + CARD_W / 2 - computeW(nameParts[1], 14) / 2, textY + 18);
+        for (int i = 0; i < nameParts.length; i++) {
+            gc.fillText(nameParts[i], x + CARD_W / 2 - computeW(nameParts[i], 14) / 2, textY + i * 16);
         }
 
         // ── Title ─────────────────────────────────────────────
@@ -198,21 +197,21 @@ public class CharacterSelectScene {
                 ? Color.color(0.15, 0.9, 0.4, 0.9)
                 : Color.color(0.5, 0.5, 0.55));
         String title = "\"" + c.title + "\"";
-        gc.fillText(title, x + CARD_W / 2 - computeW(title, 11) / 2, textY + 40);
+        gc.fillText(title, x + CARD_W / 2 - computeW(title, 11) / 2, textY + 56);
 
         // ── Base stats bar ────────────────────────────────────
-        double statY = textY + 60;
+        double statY = textY + 78;
         gc.setFont(Font.font("Courier New", 10));
         gc.setFill(Color.color(0.4, 0.4, 0.45));
-        gc.fillText("BASE STATS", x + CARD_W / 2 - 30, statY);
+        gc.fillText("LAIR STATS", x + CARD_W / 2 - 30, statY);
 
-        renderMiniBar(gc, "HP",    x + 12, statY + 14, CARD_W - 24, 1.0, selected);
-        renderMiniBar(gc, "SPD",   x + 12, statY + 30, CARD_W - 24, 1.0, selected);
-        renderMiniBar(gc, "JUMP",  x + 12, statY + 46, CARD_W - 24, 1.0, selected);
+        renderMiniBar(gc, "HP",   x + 12, statY + 14, CARD_W - 24, c.getHealth() / 100.0, selected);
+        renderMiniBar(gc, "LOG",  x + 12, statY + 30, CARD_W - 24, c.getLogic() / 100.0, selected);
+        renderMiniBar(gc, "WIS",  x + 12, statY + 46, CARD_W - 24, c.getWisdom() / 100.0, selected);
 
         gc.setFont(Font.font("Courier New", 9));
         gc.setFill(Color.color(0.35, 0.35, 0.4));
-        gc.fillText("Weapon modifies stats", x + 12, statY + 66);
+        gc.fillText("Mana: " + c.getMana() + "  Basic: " + c.getBasicAttack(), x + 12, statY + 66);
 
         // ── Selected badge ────────────────────────────────────
         if (selected) {
@@ -245,7 +244,7 @@ public class CharacterSelectScene {
 
     private void renderLorePanel() {
         double panelY = CARDS_Y + CARD_H + 18;
-        double panelH = 46;
+        double panelH = 88;
 
         gc.setFill(Color.color(0.04, 0.06, 0.04, 0.85));
         gc.fillRoundRect(60, panelY, W - 120, panelH, 8, 8);
@@ -255,11 +254,20 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 13));
         gc.setFill(Color.color(0.7, 0.75, 0.7));
-        String[] loreParts = selected.lore.split("\n");
-        for (int i = 0; i < loreParts.length; i++) {
-            double lw = computeW(loreParts[i], 13);
-            gc.fillText(loreParts[i], W / 2.0 - lw / 2, panelY + 17 + i * 18);
-        }
+        String roleLine = selected.title + "  |  HP " + selected.getHealth()
+                + "  |  Logic " + selected.getLogic()
+                + "  |  Wisdom " + selected.getWisdom()
+                + "  |  Mana " + selected.getMana();
+        gc.fillText(roleLine, W / 2.0 - computeW(roleLine, 13) / 2, panelY + 22);
+
+        gc.setFont(Font.font("Georgia", 12));
+        gc.setFill(Color.color(0.82, 0.82, 0.82));
+        gc.fillText(selected.lore, W / 2.0 - computeW(selected.lore, 12) / 2, panelY + 45);
+
+        gc.setFont(Font.font("Courier New", 11));
+        gc.setFill(Color.color(0.15, 0.9, 0.4, 0.85));
+        String skillLine = "Skills: " + selected.getSkillSummary();
+        gc.fillText(skillLine, W / 2.0 - computeW(skillLine, 11) / 2, panelY + 69);
     }
 
     private void renderConfirmButton() {

@@ -40,47 +40,36 @@ public class IntroScene {
     private record DialogueLine(String speaker, String text, String phase) {}
 
     private final List<DialogueLine> lines = List.of(
-            // Phase 1 — Normal night
-            new DialogueLine("JOSEPH",  "We're almost done. Just the methodology section left.", "calm"),
-            new DialogueLine("ILDE",    "I swear if we fail this after staying up all night...", "calm"),
-            new DialogueLine("JAMUEL",  "We won't. We talked to Sir Khai earlier. We're good.", "calm"),
-            new DialogueLine("GAILE",   "Did anyone eat? I can't think straight.", "calm"),
-            new DialogueLine("IBEN",    "...", "calm"),
-            new DialogueLine("ILDE",    "Iben. Buddy. You've been staring at the window for ten minutes.", "calm"),
-            new DialogueLine("IBEN",    "Something feels off tonight.", "calm"),
+            new DialogueLine("—",       "It was supposed to be an ordinary late night on campus.", "calm"),
+            new DialogueLine("—",       "Six students stayed behind to finish their final project: Joseph, Iben, Ilde, Gaille, Jamuel, and Caesar.", "calm"),
+            new DialogueLine("JAMUEL",  "Sir Khai already told us what to fix. We just have to finish.", "calm"),
+            new DialogueLine("IBEN",    "Something feels wrong outside.", "calm"),
 
-            // Phase 2 — The meteor
-            new DialogueLine("—",       "The sky ignites. A streak of light tears across the darkness.", "event"),
-            new DialogueLine("—",       "The building SHAKES. Papers scatter. Car alarms erupt outside.", "event"),
-            new DialogueLine("GAILE",   "What was THAT?!", "shock"),
-            new DialogueLine("JOSEPH",  "Everyone get away from the windows!", "shock"),
-            new DialogueLine("JAMUEL",  "It landed close — really close. I can see the glow from here.", "shock"),
-            new DialogueLine("ILDE",    "We should check it out.", "shock"),
-            new DialogueLine("JOSEPH",  "No. We finish the project. Deadlines don't care about meteors.", "shock"),
-            new DialogueLine("—",       "They agree. They turn back to their laptops. Except one.", "event"),
+            new DialogueLine("—",       "An hour later, the sky ignites.", "event"),
+            new DialogueLine("—",       "A meteor tears across the darkness and crashes near the school grounds.", "event"),
+            new DialogueLine("JOSEPH",  "Back away from the windows.", "shock"),
+            new DialogueLine("ILDE",    "We should check that out.", "shock"),
+            new DialogueLine("JOSEPH",  "No. Deadline first. We finish the project.", "shock"),
+            new DialogueLine("—",       "They return to the classroom. Caesar stays behind.", "event"),
 
-            // Phase 3 — Caesar
-            new DialogueLine("CAESAR",  "Just one picture. I'll be right back.", "caesar"),
-            new DialogueLine("JOSEPH",  "Caesar, don't—", "caesar"),
-            new DialogueLine("—",       "The flash goes off.", "event"),
-            new DialogueLine("—",       "The meteor responds.", "event"),
-            new DialogueLine("—",       "The surface CRACKS open. A thick, glowing gas pours out.", "horror"),
-            new DialogueLine("CAESAR",  "...", "horror"),
-            new DialogueLine("—",       "His veins begin to glow. His voice is no longer his own.", "horror"),
-            new DialogueLine("—",       "He attacks. They never stood a chance.", "horror"),
-            new DialogueLine("—",       "Darkness.", "horror"),
+            new DialogueLine("CAESAR",  "Just one picture.", "caesar"),
+            new DialogueLine("—",       "The camera flash goes off.", "event"),
+            new DialogueLine("—",       "The meteor cracks open.", "horror"),
+            new DialogueLine("—",       "A thick glowing gas erupts out and swallows Caesar whole.", "horror"),
+            new DialogueLine("—",       "His veins light up. His bones twist. His eyes stop looking human.", "horror"),
+            new DialogueLine("—",       "Then he attacks.", "horror"),
+            new DialogueLine("—",       "The five survivors are thrown across desks and concrete. Darkness follows.", "horror"),
 
-            // Phase 4 — Awakening
-            new DialogueLine("—",       "The lights flicker red. The walls breathe.", "awaken"),
-            new DialogueLine("—",       "You open your eyes. The school is wrong.", "awaken"),
-            new DialogueLine("SIR KHAI","Don't move. You're safe — for now.", "khai"),
-            new DialogueLine("SIR KHAI","The meteor carried something. A pathogen. It's called LAIR.", "khai"),
-            new DialogueLine("SIR KHAI","It spread through the campus instantly. Most have already turned.", "khai"),
-            new DialogueLine("SIR KHAI","But you five... you're different. The gas entered you, but didn't consume you.", "khai"),
-            new DialogueLine("SIR KHAI","It awakened something instead.", "khai"),
-            new DialogueLine("SIR KHAI","Caesar is at the main building. He's the source.", "khai"),
-            new DialogueLine("SIR KHAI","My memory's kind of blurry.", "khai"),
-            new DialogueLine("SIR KHAI","What was your name again?", "khai")
+            new DialogueLine("—",       "When consciousness returns, the school no longer feels familiar.", "awaken"),
+            new DialogueLine("—",       "Lights flicker red. Vein-like growths pulse through the walls.", "awaken"),
+            new DialogueLine("SIR KHAI","Don't force yourself up yet. You're alive because your exposure was incomplete.", "khai"),
+            new DialogueLine("SIR KHAI","The meteor carried LAIR. It is a living pathogen.", "khai"),
+            new DialogueLine("SIR KHAI","Full exposure mutates the host. Partial exposure creates synchronization.", "khai"),
+            new DialogueLine("SIR KHAI","The gas spread through the campus. Many students and staff are already infected.", "khai"),
+            new DialogueLine("SIR KHAI","Caesar became the primary host. You five became something else.", "khai"),
+            new DialogueLine("SIR KHAI","The infection amplified what was already inside you.", "khai"),
+            new DialogueLine("SIR KHAI","Fight through the school. Reach Caesar. Bring back the stabilized vial.", "khai"),
+            new DialogueLine("SIR KHAI","If we are lucky, it will be a cure.", "khai")
     );
 
     // ── State ─────────────────────────────────────────────────
