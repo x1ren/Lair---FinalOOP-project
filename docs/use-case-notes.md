@@ -22,7 +22,6 @@ So the revised diagram keeps only the main goals:
 - `Start New Game`
 - `View Story Intro`
 - `Select Character`
-- `Select Weapon`
 - `Play Game`
 - `Explore Campus`
 - `Fight Enemies`
@@ -42,7 +41,6 @@ The `Player` is connected by simple lines to the major use cases:
 
 - `Start New Game`
 - `Play Game`
-- `View Ending`
 - `Exit Game`
 
 This follows the note that association shows interaction between an actor and a use case.
@@ -53,15 +51,17 @@ This follows the note that association shows interaction between an actor and a 
 
 - `View Story Intro`
 - `Select Character`
-- `Select Weapon`
 
 `Play Game` includes:
 
 - `Explore Campus`
 - `Fight Enemies`
 - `Fight Boss`
+- `View Ending`
 
 These are required parts of those larger use cases.
+
+Because the current build assigns one weapon to each survivor automatically, weapon selection is no longer shown as a separate use case.
 
 ### Extend
 
@@ -78,7 +78,7 @@ This matches the note that generalization represents an “is-a” relationship.
 
 ## Short explanation for reporting
 
-“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight.” 
+“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight. Character choice also determines the player’s fixed weapon loadout.” 
 
 ## Related documents
 

@@ -18,7 +18,7 @@ public class Main extends Application {
         stage.setTitle(TITLE);
         stage.setResizable(false);
 
-        // Flow: IntroScene → CharacterSelectScene → WeaponSelectScene → GameScene
+        // Flow: IntroScene -> CharacterSelectScene -> GameScene
         IntroScene intro = new IntroScene();
         stage.setScene(intro.getScene());
         stage.show();

@@ -3,7 +3,7 @@
 ## Project Summary
 
 `THE LAIR` is a JavaFX action game built in Java.  
-The player follows a story-driven progression through an infected school, selects a survivor, equips a weapon, fights enemy waves, defeats Caesar Hunos, and then faces the final boss, the false Sir Khai.
+The player follows a story-driven progression through an infected school, selects a survivor with a fixed weapon loadout, fights enemy waves, defeats Caesar Hunos, and then faces the final boss, the false Sir Khai.
 
 ## Current Scope
 
@@ -11,7 +11,7 @@ The implemented system already covers these major areas:
 
 - cinematic story introduction
 - character selection
-- weapon selection
+- fixed character loadouts
 - gameplay scene with stage progression
 - enemy encounters and boss encounters
 - HUD and combat actions
@@ -22,12 +22,11 @@ The implemented system already covers these major areas:
 1. Launch the application
 2. View the story intro
 3. Select a playable character
-4. Select a weapon
-5. Enter the gameplay scene
-6. Clear infected stages across the campus
-7. Defeat Caesar Hunos
-8. Defeat the false Sir Khai
-9. View the ending
+4. Enter the gameplay scene with the assigned gun
+5. Clear infected stages across the campus
+6. Defeat Caesar Hunos
+7. Defeat the false Sir Khai
+8. View the ending
 
 ## Main Packages
 
@@ -37,12 +36,11 @@ Contains the JavaFX scenes that represent the game flow:
 
 - `IntroScene`
 - `CharacterSelectScene`
-- `WeaponSelectScene`
 - `GameScene`
 
 ### `org.example.player`
 
-Contains the playable character data:
+Contains the playable character data and fixed loadout stats:
 
 - `CharacterType`
 

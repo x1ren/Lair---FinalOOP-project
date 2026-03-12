@@ -1,128 +1,142 @@
 package org.example.player;
 
+import org.example.weapons.Weapon;
+import org.example.weapons.WeaponFactory;
+import org.example.weapons.WeaponType;
+
 /**
  * Defines the five survivors of THE LAIR.
  *
- * The enum stores the story-facing RPG stats so scenes can display
- * real character data without introducing extra model classes yet.
+ * Each survivor now carries one fixed weapon loadout instead of choosing from
+ * a shared armory. This keeps the data simple and lets the scenes and
+ * gameplay read one source of truth for HP, damage, movement speed, and skill.
  */
 public enum CharacterType {
 
     JOSEPH_JIMENEZ(
             "Joseph Jimenez",
             "Frontline Assault",
-            "Heavy damage frontliner with burst output.",
-            95, 90, 45,
-            "Burst Drive",
-            "Shockwave Punch",
-            "Adrenal Lock"
+            "Joseph pushes forward with a fixed assault rifle loadout and raw pressure.",
+            WeaponType.ASSAULT_RIFLE,
+            200,
+            130,
+            100,
+            "Adrenal Lock",
+            7.0
     ),
     IBEN_ANOOS(
             "Iben Anoos",
-            "Mobility Specialist",
-            "Fast precision attacker with strong evasive control.",
-            70, 85, 65,
+            "Suppressive Gunner",
+            "Iben trades mobility for sustained fire with a heavy LMG.",
+            WeaponType.LMG,
+            200,
+            110,
+            70,
             "Phase Dash",
-            "Split Strike",
-            "Evasion Pulse"
+            4.5
     ),
     ILDE_JAN_FIGUERAS(
             "Ilde Jan Figueras",
-            "Defensive Controller",
-            "Highest durability and battlefield control.",
-            100, 70, 60,
+            "Rapid Controller",
+            "Ilde controls the field with an SMG and the fastest movement in the roster.",
+            WeaponType.SMG,
+            200,
+            80,
+            130,
             "Barrier Pulse",
-            "Ground Lock",
-            "Counter Surge"
+            7.0
     ),
     GAILE_AMOLONG(
-            "Gaile Amolong",
-            "Adaptive Tactical Fighter",
-            "Balanced fighter who scales through aura control.",
-            75, 80, 90,
-            "Aura Thread",
-            "Analyze Weakness",
-            "Overclock"
+            "Gaille Amolong",
+            "Close-Range Breacher",
+            "Gaille enters every run with a shotgun built for short-range bursts.",
+            WeaponType.SHOTGUN,
+            200,
+            180,
+            80,
+            "Overclock",
+            7.0
     ),
     JAMUEL_BACUS(
             "Jamuel Bacus",
-            "Energy Specialist",
-            "Highest mana control, lowest physical output.",
-            65, 60, 100,
-            "Mana Pulse",
-            "Chain Reaction",
-            "Reserve Conversion"
+            "Sharpshooter",
+            "Jamuel carries the sniper role with the highest single-shot output.",
+            WeaponType.SNIPER,
+            200,
+            250,
+            65,
+            "Reserve Conversion",
+            8.0
     );
+
+    public static final double BASE_MOVE_SPEED = 260.0;
+    public static final double BASE_JUMP = -520.0;
 
     public final String name;
     public final String title;
     public final String lore;
 
+    private final WeaponType assignedWeaponType;
     private final int health;
-    private final int logic;
-    private final int wisdom;
-    private final String skillOne;
-    private final String skillTwo;
-    private final String skillThree;
-
-    public static final double BASE_SPEED = 260.0;
-    public static final double BASE_JUMP  = -520.0;
+    private final int damage;
+    private final int movementSpeed;
+    private final String skillName;
+    private final double skillCooldown;
 
     CharacterType(String name, String title, String lore,
-                  int health, int logic, int wisdom,
-                  String skillOne, String skillTwo, String skillThree) {
+                  WeaponType assignedWeaponType,
+                  int health, int damage, int movementSpeed,
+                  String skillName, double skillCooldown) {
         this.name = name;
         this.title = title;
         this.lore = lore;
+        this.assignedWeaponType = assignedWeaponType;
         this.health = health;
-        this.logic = logic;
-        this.wisdom = wisdom;
-        this.skillOne = skillOne;
-        this.skillTwo = skillTwo;
-        this.skillThree = skillThree;
+        this.damage = damage;
+        this.movementSpeed = movementSpeed;
+        this.skillName = skillName;
+        this.skillCooldown = skillCooldown;
     }
 
     public int getHealth() {
         return health;
     }
 
-    public int getLogic() {
-        return logic;
+    public int getDamage() {
+        return damage;
     }
 
-    public int getWisdom() {
-        return wisdom;
+    public int getMovementSpeed() {
+        return movementSpeed;
     }
 
-    public int getMana() {
-        return wisdom * 2;
+    public double getMovementSpeedPx() {
+        return BASE_MOVE_SPEED * movementSpeed / 100.0;
     }
 
-    public int getBasicAttack() {
-        return (int) Math.round(logic * 0.35);
+    public String getSkillName() {
+        return skillName;
     }
 
-    public String getSkillOne() {
-        return skillOne;
+    public double getSkillCooldown() {
+        return skillCooldown;
     }
 
-    public String getSkillTwo() {
-        return skillTwo;
+    public WeaponType getAssignedWeaponType() {
+        return assignedWeaponType;
     }
 
-    public String getSkillThree() {
-        return skillThree;
+    public String getAssignedWeaponLabel() {
+        return switch (assignedWeaponType) {
+            case ASSAULT_RIFLE -> "Assault Rifle";
+            case SMG -> "SMG";
+            case SHOTGUN -> "Shotgun";
+            case SNIPER -> "Sniper";
+            case LMG -> "LMG";
+        };
     }
 
-    public String getSkillSummary() {
-        return skillOne + "  |  " + skillTwo + "  |  " + skillThree;
-    }
-
-    public double getFinalSpeed(org.example.weapons.Weapon weapon) {
-        return BASE_SPEED * weapon.getMoveSpeedModifier();
-    }
-
-    public double getFinalJump(org.example.weapons.Weapon weapon) {
-        return BASE_JUMP * weapon.getJumpForceModifier();
+    public Weapon createWeapon() {
+        return WeaponFactory.create(assignedWeaponType);
     }
 }

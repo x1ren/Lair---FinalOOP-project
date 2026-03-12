@@ -9,7 +9,6 @@ rectangle "THE LAIR Game System" {
   usecase "Start New Game" as UC_Start
   usecase "View Story Intro" as UC_Intro
   usecase "Select Character" as UC_SelectCharacter
-  usecase "Select Weapon" as UC_SelectWeapon
   usecase "Play Game" as UC_Play
   usecase "Explore Campus" as UC_Explore
   usecase "Fight Enemies" as UC_FightEnemies
@@ -24,23 +23,20 @@ rectangle "THE LAIR Game System" {
 
 Player -- UC_Start
 Player -- UC_Play
-Player -- UC_Ending
 Player -- UC_Exit
 
 UC_Start ..> UC_Intro : <<include>>
 UC_Start ..> UC_SelectCharacter : <<include>>
-UC_Start ..> UC_SelectWeapon : <<include>>
 
 UC_Play ..> UC_Explore : <<include>>
 UC_Play ..> UC_FightEnemies : <<include>>
 UC_Play ..> UC_FightBoss : <<include>>
+UC_Play ..> UC_Ending : <<include>>
 
 UC_Skill ..> UC_FightEnemies : <<extend>>
 UC_Reload ..> UC_FightEnemies : <<extend>>
 
 UC_Caesar -|> UC_FightBoss
 UC_Khai -|> UC_FightBoss
-
-UC_Ending ..> UC_Khai : <<include>>
 
 @enduml

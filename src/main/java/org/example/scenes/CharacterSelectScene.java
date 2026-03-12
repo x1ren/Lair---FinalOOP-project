@@ -3,7 +3,6 @@ package org.example.scenes;
 import org.example.Main;
 import org.example.player.CharacterType;
 import javafx.animation.AnimationTimer;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.layout.*;
@@ -12,11 +11,6 @@ import javafx.scene.text.*;
 
 /**
  * Character Selection Screen for THE LAIR.
- *
- * POLYMORPHISM in action:
- *   Each CharacterType is treated uniformly through the enum.
- *   When the player picks one, it's passed polymorphically
- *   to WeaponSelectScene and eventually to Player constructor.
  *
  * Design: dark infected campus aesthetic.
  * Green glowing toxic gas vibe from the LAIR virus.
@@ -68,7 +62,7 @@ public class CharacterSelectScene {
             // Confirm button
             if (e.getX() >= BTN_X && e.getX() <= BTN_X + BTN_W
                     && e.getY() >= BTN_Y && e.getY() <= BTN_Y + BTN_H) {
-                proceedToWeaponSelect();
+                proceedToGame();
             }
         });
 
@@ -109,7 +103,7 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 13));
         gc.setFill(Color.color(0.55, 0.55, 0.55));
-        String hint = "Choose the survivor whose aura bonded with LAIR.";
+        String hint = "Choose the survivor and enter with their fixed weapon loadout.";
         gc.fillText(hint, W / 2.0 - computeW(hint, 13) / 2, 128);
 
         // ── Cards ─────────────────────────────────────────────
@@ -203,15 +197,15 @@ public class CharacterSelectScene {
         double statY = textY + 78;
         gc.setFont(Font.font("Courier New", 10));
         gc.setFill(Color.color(0.4, 0.4, 0.45));
-        gc.fillText("LAIR STATS", x + CARD_W / 2 - 30, statY);
+        gc.fillText("LOADOUT STATS", x + CARD_W / 2 - 38, statY);
 
-        renderMiniBar(gc, "HP",   x + 12, statY + 14, CARD_W - 24, c.getHealth() / 100.0, selected);
-        renderMiniBar(gc, "LOG",  x + 12, statY + 30, CARD_W - 24, c.getLogic() / 100.0, selected);
-        renderMiniBar(gc, "WIS",  x + 12, statY + 46, CARD_W - 24, c.getWisdom() / 100.0, selected);
+        renderMiniBar(gc, "HP",  x + 12, statY + 14, CARD_W - 24, c.getHealth() / 200.0, selected);
+        renderMiniBar(gc, "DMG", x + 12, statY + 30, CARD_W - 24, c.getDamage() / 250.0, selected);
+        renderMiniBar(gc, "MOV", x + 12, statY + 46, CARD_W - 24, c.getMovementSpeed() / 130.0, selected);
 
         gc.setFont(Font.font("Courier New", 9));
         gc.setFill(Color.color(0.35, 0.35, 0.4));
-        gc.fillText("Mana: " + c.getMana() + "  Basic: " + c.getBasicAttack(), x + 12, statY + 66);
+        gc.fillText("Gun: " + c.getAssignedWeaponLabel(), x + 12, statY + 66);
 
         // ── Selected badge ────────────────────────────────────
         if (selected) {
@@ -255,9 +249,9 @@ public class CharacterSelectScene {
         gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 13));
         gc.setFill(Color.color(0.7, 0.75, 0.7));
         String roleLine = selected.title + "  |  HP " + selected.getHealth()
-                + "  |  Logic " + selected.getLogic()
-                + "  |  Wisdom " + selected.getWisdom()
-                + "  |  Mana " + selected.getMana();
+                + "  |  Damage " + selected.getDamage()
+                + "  |  Move " + selected.getMovementSpeed()
+                + "  |  Gun " + selected.getAssignedWeaponLabel();
         gc.fillText(roleLine, W / 2.0 - computeW(roleLine, 13) / 2, panelY + 22);
 
         gc.setFont(Font.font("Georgia", 12));
@@ -266,7 +260,8 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Courier New", 11));
         gc.setFill(Color.color(0.15, 0.9, 0.4, 0.85));
-        String skillLine = "Skills: " + selected.getSkillSummary();
+        String skillLine = "Skill: " + selected.getSkillName() + "  |  Cooldown: "
+                + (int) selected.getSkillCooldown() + "s";
         gc.fillText(skillLine, W / 2.0 - computeW(skillLine, 11) / 2, panelY + 69);
     }
 
@@ -284,7 +279,7 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Georgia", FontWeight.BOLD, 18));
         gc.setFill(Color.color(0.15, 0.9, 0.4));
-        String btnText = "CHOOSE WEAPON  ▶";
+        String btnText = "ENTER THE LAIR  ▶";
         gc.fillText(btnText, BTN_X + BTN_W / 2 - computeW(btnText, 18) / 2, BTN_Y + 33);
     }
 
@@ -316,9 +311,9 @@ public class CharacterSelectScene {
         return -1;
     }
 
-    private void proceedToWeaponSelect() {
-        WeaponSelectScene ws = new WeaponSelectScene(selected);
-        Main.setScene(ws.getScene());
+    private void proceedToGame() {
+        GameScene game = new GameScene(selected);
+        Main.setScene(game.getScene());
     }
 
     private double computeW(String text, double size) {

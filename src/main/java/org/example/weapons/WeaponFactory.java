@@ -8,17 +8,27 @@ import java.util.List;
  */
 public class WeaponFactory {
 
+    public static Weapon create(WeaponType type) {
+        return switch (type) {
+            case ASSAULT_RIFLE -> AssaultRifle.create();
+            case SMG -> SMG.create();
+            case SHOTGUN -> Shotgun.create();
+            case SNIPER -> Sniper.create();
+            case LMG -> LMG.create();
+        };
+    }
+
     public static List<Weapon> getAllWeapons() {
         return List.of(
-                AssaultRifle.create(),
-                SMG.create(),
-                Shotgun.create(),
-                Sniper.create(),
-                LMG.create()
+                create(WeaponType.ASSAULT_RIFLE),
+                create(WeaponType.SMG),
+                create(WeaponType.SHOTGUN),
+                create(WeaponType.SNIPER),
+                create(WeaponType.LMG)
         );
     }
 
     public static Weapon getDefault() {
-        return AssaultRifle.create();
+        return create(WeaponType.ASSAULT_RIFLE);
     }
 }

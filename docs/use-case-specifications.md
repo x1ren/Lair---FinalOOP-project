@@ -14,7 +14,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 1. Player chooses to start a new game.
 2. System shows the story introduction.
 3. System proceeds to character selection.
-4. System proceeds to weapon selection.
+4. System assigns the selected character's fixed weapon loadout.
 5. System starts the game.
 
 ## UC-02 Select Character
@@ -27,27 +27,15 @@ These textual use case descriptions supplement the high-level use case diagram.
 **Basic Flow**
 
 1. Player reviews available survivors.
-2. System displays the role, stats, and skills of the selected survivor.
+2. System displays the role, fixed weapon, stats, and skill of the selected survivor.
 3. Player confirms the character.
+4. System stores the survivor and assigned weapon for the run.
 
-## UC-03 Select Weapon
-
-**Primary Actor:** Player  
-**Goal:** Choose one weapon  
-**Precondition:** Character has already been selected  
-**Postcondition:** Selected weapon is stored for the run
-
-**Basic Flow**
-
-1. Player reviews available weapons.
-2. System displays weapon stats and description.
-3. Player confirms the weapon.
-
-## UC-04 Play Game
+## UC-03 Play Game
 
 **Primary Actor:** Player  
 **Goal:** Progress through the game story and complete the run  
-**Precondition:** Character and weapon are selected  
+**Precondition:** A character is selected and the assigned loadout is active  
 **Postcondition:** Player reaches either victory or defeat ending
 
 **Basic Flow**
@@ -58,7 +46,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 4. Player reaches boss encounters.
 5. Player views the ending.
 
-## UC-05 Explore Campus
+## UC-04 Explore Campus
 
 **Primary Actor:** Player  
 **Goal:** Move through the infected school areas  
@@ -71,7 +59,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 2. System presents a themed stage.
 3. Player clears the stage and progresses forward.
 
-## UC-06 Fight Enemies
+## UC-05 Fight Enemies
 
 **Primary Actor:** Player  
 **Goal:** Defeat infected enemies blocking progression  
@@ -81,12 +69,12 @@ These textual use case descriptions supplement the high-level use case diagram.
 **Basic Flow**
 
 1. System spawns enemies in the current stage.
-2. Player attacks enemies using the equipped weapon.
+2. Player attacks enemies using the assigned weapon.
 3. Player may use a character skill.
 4. Player may reload the weapon.
 5. System removes defeated enemies.
 
-## UC-07 Fight Boss
+## UC-06 Fight Boss
 
 **Primary Actor:** Player  
 **Goal:** Defeat a boss encounter  
@@ -98,7 +86,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 - `Fight Caesar Hunos`
 - `Fight False Sir Khai`
 
-## UC-08 View Ending
+## UC-07 View Ending
 
 **Primary Actor:** Player  
 **Goal:** See the outcome of the game run  
@@ -111,7 +99,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 2. Player reads the result of the run.
 3. Player decides whether to return or exit.
 
-## UC-09 Exit Game
+## UC-08 Exit Game
 
 **Primary Actor:** Player  
 **Goal:** Leave the application  

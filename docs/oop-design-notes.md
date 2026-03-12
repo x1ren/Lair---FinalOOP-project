@@ -7,6 +7,7 @@ Encapsulation is used by hiding internal state and exposing only methods needed 
 Examples:
 
 - [Weapon.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/weapons/Weapon.java) keeps weapon fields private and exposes getters.
+- [CharacterType.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/player/CharacterType.java) keeps each survivor's fixed loadout stats in one enum.
 - [GameObject.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/gameplay/GameObject.java) keeps position and size inside the object.
 - [PlayerActor.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/gameplay/PlayerActor.java) and [EnemyActor.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/gameplay/EnemyActor.java) manage their own state.
 
@@ -19,6 +20,7 @@ Examples:
 - [GameLoop.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/engines/GameLoop.java) defines abstract `update()` and `render()` methods.
 - [GameObject.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/gameplay/GameObject.java) defines a shared gameplay object abstraction.
 - [Weapon.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/weapons/Weapon.java) defines the shared weapon contract.
+- [CharacterType.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/player/CharacterType.java) abstracts each survivor into one reusable selection unit.
 
 ## Inheritance
 

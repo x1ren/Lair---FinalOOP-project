@@ -9,7 +9,6 @@ package "org.example" {
 package "org.example.scenes" {
   class IntroScene
   class CharacterSelectScene
-  class WeaponSelectScene
   class GameScene
 }
 
@@ -46,8 +45,7 @@ package "org.example.weapons" {
 
 Main --> IntroScene
 IntroScene --> CharacterSelectScene
-CharacterSelectScene --> WeaponSelectScene
-WeaponSelectScene --> GameScene
+CharacterSelectScene --> GameScene
 
 GameScene --> CharacterType
 GameScene --> Weapon
@@ -68,7 +66,8 @@ PlatformTile --|> GameObject
 
 EntityManager ..> GameObject
 EnemyActor --> PlayerActor
-CharacterType --> Weapon
+CharacterType --> WeaponFactory
+CharacterType --> WeaponType
 
 AssaultRifle --|> Weapon
 SMG --|> Weapon
@@ -76,6 +75,7 @@ Shotgun --|> Weapon
 Sniper --|> Weapon
 LMG --|> Weapon
 WeaponFactory --> Weapon
+WeaponFactory --> WeaponType
 Weapon --> WeaponType
 
 @enduml

@@ -84,19 +84,18 @@ public class GameScene {
     private int stageIndex = 0;
     private int ammo;
     private int hp;
-    private double mana;
     private final int maxHp;
-    private final int maxMana;
 
     private double shootCooldown = 0;
     private double reloadTimer = 0;
+    private double abilityCooldown = 0;
     private boolean reloading = false;
     private double stageIntroTimer = 4.0;
     private double stageAdvanceTimer = -1;
     private double statusTimer = 0;
     private String statusText = "";
 
-    private double logicBuffTimer = 0;
+    private double damageBoostTimer = 0;
     private double dashTimer = 0;
     private double invulnerableTimer = 0;
     private int shield = 0;
@@ -105,15 +104,13 @@ public class GameScene {
     private boolean finished = false;
     private boolean victory = false;
 
-    public GameScene(CharacterType character, Weapon weapon) {
+    public GameScene(CharacterType character) {
         this.character = character;
-        this.weapon = weapon;
+        this.weapon = character.createWeapon();
         this.player = new PlayerActor(120, GROUND_Y - 58, 42, 58);
         this.player.setAuraColor(weapon.getProjectileColor());
         this.maxHp = character.getHealth();
         this.hp = maxHp;
-        this.maxMana = character.getMana();
-        this.mana = maxMana;
         this.ammo = weapon.getMagazineSize();
 
         Pane root = new Pane(canvas);
@@ -155,13 +152,13 @@ public class GameScene {
 
         shootCooldown = Math.max(0, shootCooldown - dt);
         reloadTimer = Math.max(0, reloadTimer - dt);
+        abilityCooldown = Math.max(0, abilityCooldown - dt);
         stageIntroTimer = Math.max(0, stageIntroTimer - dt);
         stageAdvanceTimer = Math.max(-1, stageAdvanceTimer - dt);
         statusTimer = Math.max(0, statusTimer - dt);
-        logicBuffTimer = Math.max(0, logicBuffTimer - dt);
+        damageBoostTimer = Math.max(0, damageBoostTimer - dt);
         dashTimer = Math.max(0, dashTimer - dt);
         invulnerableTimer = Math.max(0, invulnerableTimer - dt);
-        mana = Math.min(maxMana, mana + dt * 8);
 
         if (reloading && reloadTimer == 0) {
             ammo = weapon.getMagazineSize();
@@ -198,23 +195,23 @@ public class GameScene {
     }
 
     private void handlePlayerInput() {
-        double moveSpeed = character.getFinalSpeed(weapon);
+        double moveSpeed = character.getMovementSpeedPx();
         if (dashTimer > 0) {
             moveSpeed *= 2.3;
         }
 
         player.setVx(0);
-        if (input.isDown(KeyCode.A)) {
+        if (input.isDown(KeyCode.A) || input.isDown(KeyCode.LEFT)) {
             player.setVx(-moveSpeed);
             player.setFacing(-1);
         }
-        if (input.isDown(KeyCode.D)) {
+        if (input.isDown(KeyCode.D) || input.isDown(KeyCode.RIGHT)) {
             player.setVx(moveSpeed);
             player.setFacing(1);
         }
 
         if (input.isJustPressed(KeyCode.SPACE) && player.isOnGround()) {
-            player.setVy(character.getFinalJump(weapon));
+            player.setVy(CharacterType.BASE_JUMP);
             player.setOnGround(false);
         }
 
@@ -308,13 +305,13 @@ public class GameScene {
         double angle = Math.atan2(input.getMouseY() - originY, input.getMouseX() - originX);
 
         int projectileCount = weapon.getPelletsPerShot();
+        int totalDamage = getCurrentShotDamage();
+        int baseDamage = Math.max(1, totalDamage / projectileCount);
+        int remainder = Math.max(0, totalDamage % projectileCount);
         for (int i = 0; i < projectileCount; i++) {
             double spread = (random.nextDouble() - 0.5) * weapon.getSpread();
             double shotAngle = angle + spread;
-            int damage = weapon.getDamage() + getCurrentBasicAttack();
-            if (overclockShots > 0) {
-                damage = (int) Math.round(damage * 1.4);
-            }
+            int damage = baseDamage + (i < remainder ? 1 : 0);
 
             projectiles.add(new Projectile(
                     originX,
@@ -332,49 +329,50 @@ public class GameScene {
     }
 
     private void activateAbility() {
+        if (abilityCooldown > 0) {
+            setStatus("Skill cooling down.");
+            return;
+        }
+
         switch (character) {
             case JOSEPH_JIMENEZ -> {
-                if (mana >= 30 && logicBuffTimer <= 0) {
-                    mana -= 30;
-                    logicBuffTimer = 5;
-                    setStatus("Adrenal Lock activated.");
-                }
+                damageBoostTimer = 4.5;
+                abilityCooldown = character.getSkillCooldown();
+                setStatus("Adrenal Lock boosted outgoing damage.");
             }
             case IBEN_ANOOS -> {
-                if (mana >= 20 && dashTimer <= 0) {
-                    mana -= 20;
-                    dashTimer = 0.18;
-                    invulnerableTimer = 0.7;
-                    setStatus("Phase Dash triggered.");
-                }
+                dashTimer = 0.18;
+                invulnerableTimer = 0.7;
+                abilityCooldown = character.getSkillCooldown();
+                setStatus("Phase Dash triggered.");
             }
             case ILDE_JAN_FIGUERAS -> {
-                if (mana >= 20) {
-                    mana -= 20;
-                    shield += 40;
-                    setStatus("Barrier Pulse absorbed 40 damage.");
-                }
+                shield += 80;
+                abilityCooldown = character.getSkillCooldown();
+                setStatus("Barrier Pulse absorbed 80 damage.");
             }
             case GAILE_AMOLONG -> {
-                if (mana >= 30 && overclockShots == 0) {
-                    mana -= 30;
-                    overclockShots = 3;
-                    setStatus("Overclock primed the next 3 shots.");
-                }
+                overclockShots = Math.max(overclockShots, 2);
+                abilityCooldown = character.getSkillCooldown();
+                setStatus("Overclock primed the next 2 shots.");
             }
             case JAMUEL_BACUS -> {
-                if (mana >= 20) {
-                    mana -= 20;
-                    hp = Math.min(maxHp, hp + 15);
-                    setStatus("Reserve Conversion restored 15 HP.");
-                }
+                hp = Math.min(maxHp, hp + 60);
+                abilityCooldown = character.getSkillCooldown();
+                setStatus("Reserve Conversion restored 60 HP.");
             }
         }
     }
 
-    private int getCurrentBasicAttack() {
-        int logic = character.getLogic() + (logicBuffTimer > 0 ? 20 : 0);
-        return (int) Math.round(logic * 0.35);
+    private int getCurrentShotDamage() {
+        double damage = character.getDamage();
+        if (damageBoostTimer > 0) {
+            damage *= 1.35;
+        }
+        if (overclockShots > 0) {
+            damage *= 1.25;
+        }
+        return (int) Math.round(damage);
     }
 
     private void applyDamage(int damage) {
@@ -498,28 +496,29 @@ public class GameScene {
         gc.fillText(character.title + "  •  " + weapon.getName(), 34, 68);
         gc.fillText("Chapter: " + stage.name(), 34, 90);
         gc.fillText("Objective: " + stage.objective(), 34, 112);
-        gc.fillText("Q Skill: " + getActiveSkillName(), 34, 134);
+        gc.fillText("Q Skill: " + character.getSkillName(), 34, 134);
 
         drawBar(34, 120, 180, 12, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
-        drawBar(226, 120, 180, 12, mana / maxMana, Color.color(0.22, 0.7, 0.92));
+        drawBar(226, 120, 180, 12, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
 
         gc.setFont(Font.font("Courier New", 12));
         gc.setFill(Color.WHITE);
         gc.fillText("HP " + hp + "/" + maxHp, 34, 145);
-        gc.fillText("Mana " + (int) mana + "/" + maxMana, 226, 145);
+        gc.fillText(getAbilityStatusText(), 226, 145);
 
         gc.setFont(Font.font("Courier New", 12));
         gc.setFill(Color.WHITE);
-        gc.fillText("Logic " + character.getLogic(), W - 360, 48);
-        gc.fillText("Basic " + getCurrentBasicAttack(), W - 360, 70);
+        gc.fillText("Damage " + getCurrentShotDamage(), W - 360, 48);
+        gc.fillText("Move " + character.getMovementSpeed() + " (" + (int) character.getMovementSpeedPx() + " px/s)", W - 360, 70);
         gc.fillText("Ammo " + ammo + "/" + weapon.getMagazineSize(), W - 360, 92);
         gc.fillText(reloadTimer > 0 ? "Reload " + String.format("%.1fs", reloadTimer) : "Reload ready", W - 360, 114);
-        gc.fillText("Controls: A D SPACE  |  Mouse  |  Q  |  R", W - 360, 136);
+        gc.fillText("Controls: A/D or Arrows  |  SPACE  |  Mouse  |  Q  |  R", W - 360, 136);
 
-        if (logicBuffTimer > 0 || shield > 0 || overclockShots > 0) {
+        if (damageBoostTimer > 0 || shield > 0 || overclockShots > 0 || dashTimer > 0) {
             gc.setFill(Color.color(0.15, 0.9, 0.4));
             String buffLine = "Buffs:";
-            if (logicBuffTimer > 0) buffLine += " Logic+20";
+            if (damageBoostTimer > 0) buffLine += " Damage Boost";
+            if (dashTimer > 0) buffLine += " Dash";
             if (shield > 0) buffLine += " Shield " + shield;
             if (overclockShots > 0) buffLine += " Overclock x" + overclockShots;
             gc.fillText(buffLine, W - 360, 156);
@@ -628,14 +627,18 @@ public class GameScene {
         }
     }
 
-    private String getActiveSkillName() {
-        return switch (character) {
-            case JOSEPH_JIMENEZ -> character.getSkillThree();
-            case IBEN_ANOOS -> character.getSkillOne();
-            case ILDE_JAN_FIGUERAS -> character.getSkillOne();
-            case GAILE_AMOLONG -> character.getSkillThree();
-            case JAMUEL_BACUS -> character.getSkillThree();
-        };
+    private double getAbilityMeterFill() {
+        if (abilityCooldown <= 0) {
+            return 1.0;
+        }
+        return 1.0 - (abilityCooldown / character.getSkillCooldown());
+    }
+
+    private String getAbilityStatusText() {
+        if (abilityCooldown <= 0) {
+            return "Skill READY";
+        }
+        return "Skill " + String.format("%.1fs", abilityCooldown);
     }
 
     private void setStatus(String message) {
