@@ -167,43 +167,37 @@ public class IntroScene {
     // ── Render ────────────────────────────────────────────────
 
     private void renderTitle() {
-        gc.setFill(Color.color(0.01, 0.02, 0.03));
+        gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, W, H);
 
-        gc.setFill(Color.color(0.02, 0.08, 0.10));
-        for (int row = 0; row < 18; row++) {
-            for (int col = 0; col < 32; col++) {
-                if ((row + col) % 3 == 0) {
-                    gc.fillRect(col * 40, row * 40, 40, 40);
-                }
-                if ((row + col) % 7 == 0) {
-                    gc.setFill(Color.color(0.08, 0.28, 0.20, 0.3));
-                    gc.fillRect(col * 40 + 10, row * 40 + 10, 12, 12);
-                    gc.setFill(Color.color(0.02, 0.08, 0.10));
-                }
-            }
+        gc.setFill(Color.color(0.2, 0.8, 0.4, 0.15));
+        for (int i = 0; i < 60; i++) {
+            double px = (i * 317 + 80) % W;
+            double py = (i * 211 + 50) % H;
+            gc.fillOval(px, py, 2, 2);
         }
 
-        drawPixelPanel(156, 124, W - 312, 240, Color.color(0.01, 0.03, 0.05, 0.96),
-                Color.color(0.10, 0.80, 0.42));
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 72));
+        gc.setFont(Font.font("Georgia", FontWeight.BOLD, 86));
         gc.setFill(Color.color(0.15, 0.9, 0.45));
         String title = "T H E   L A I R";
         double tw = computeTextWidth(title, 86);
-        gc.fillText(title, W / 2.0 - tw / 2, H / 2.0 - 26);
+        gc.fillText(title, W / 2.0 - tw / 2, H / 2.0 - 20);
 
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
+        gc.setFill(Color.color(0.15, 0.9, 0.45, 0.25));
+        gc.setFont(Font.font("Georgia", FontWeight.BOLD, 90));
+        gc.fillText(title, W / 2.0 - tw / 2 - 2, H / 2.0 - 18);
+
+        gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 18));
         gc.setFill(Color.color(0.7, 0.7, 0.7, 0.8));
         String sub = "The Beginning of the End";
         double sw = computeTextWidth(sub, 18);
-        gc.fillText(sub.toUpperCase(), W / 2.0 - sw / 2, H / 2.0 + 26);
+        gc.fillText(sub, W / 2.0 - sw / 2, H / 2.0 + 40);
 
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
-        gc.setFill(Color.color(0.45, 0.8, 0.6));
+        gc.setFont(Font.font("Courier New", 13));
+        gc.setFill(Color.color(0.4, 0.4, 0.4));
         String prompt = "[ Click or press SPACE to begin ]";
         double pw = computeTextWidth(prompt, 13);
-        gc.fillText(prompt.toUpperCase(), W / 2.0 - pw / 2, H - 64);
+        gc.fillText(prompt, W / 2.0 - pw / 2, H - 50);
     }
 
     private void redraw() {
