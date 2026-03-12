@@ -59,7 +59,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 2. System presents one of the story stages: Library, Canteen, Gym, or Courtyard.
 3. Player clears the current stage and progresses forward.
 
-## UC-05 Fight Enemies
+## UC-05 Fight Minions
 
 **Primary Actor:** Player  
 **Goal:** Defeat infected enemies blocking progression  

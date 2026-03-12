@@ -28,7 +28,7 @@ So the revised diagram keeps only the main goals:
 - `Clear Canteen`
 - `Clear Gym`
 - `Clear Courtyard`
-- `Fight Enemies`
+- `Fight Minions`
 - `Fight Boss`
 - `Fight Caesar Hunos`
 - `Fight LAIR Mimic`
@@ -61,7 +61,7 @@ This follows the note that association shows interaction between an actor and a 
 `Play Game` includes:
 
 - `Clear Story Stages`
-- `Fight Enemies`
+- `Fight Minions`
 - `Fight Boss`
 - `View Ending`
 
@@ -78,8 +78,8 @@ Because the current build assigns one weapon to each survivor automatically, wea
 
 ### Extend
 
-`Use Character Skill` extends `Fight Enemies`  
-`Reload Weapon` extends `Fight Enemies`
+`Use Character Skill` extends `Fight Minions`  
+`Reload Weapon` extends `Fight Minions`
 
 These are optional actions that may happen during combat, which matches the lecture note for `extend`.  
 They are also connected directly to `Player` because the player explicitly triggers them through gameplay input.

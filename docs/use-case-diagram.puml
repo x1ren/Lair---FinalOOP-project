@@ -15,7 +15,7 @@ rectangle "THE LAIR Game System" {
   usecase "Clear Canteen" as UC_Canteen
   usecase "Clear Gym" as UC_Gym
   usecase "Clear Courtyard" as UC_Courtyard
-  usecase "Fight Enemies" as UC_FightEnemies
+  usecase "Fight Minions" as UC_FightEnemies
   usecase "Fight Boss" as UC_FightBoss
   usecase "Fight Caesar Hunos" as UC_Caesar
   usecase "Fight LAIR Mimic" as UC_Khai
