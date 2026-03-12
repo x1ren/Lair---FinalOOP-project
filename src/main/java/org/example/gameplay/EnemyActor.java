@@ -2,8 +2,6 @@ package org.example.gameplay;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 
 public class EnemyActor extends GameObject {
 
@@ -74,21 +72,30 @@ public class EnemyActor extends GameObject {
 
     @Override
     public void render(GraphicsContext gc) {
+        double x = Math.round(getX());
+        double y = Math.round(getY());
+        double pixel = boss ? 6 : 4;
+
         gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
-        gc.fillOval(getX() - 14, getY() - 12, getWidth() + 28, getHeight() + 24);
+        gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
 
         gc.setFill(color);
-        gc.fillRoundRect(getX(), getY(), getWidth(), getHeight(), 8, 8);
+        gc.fillRect(x + pixel, y, getWidth() - pixel * 2, pixel * 3);
+        gc.fillRect(x, y + pixel * 3, getWidth(), getHeight() - pixel * 3);
 
-        gc.setFill(Color.color(0.1, 0.1, 0.12, 0.85));
-        gc.fillRect(getX(), getY() - 12, getWidth(), 6);
+        gc.setFill(Color.color(0.08, 0.08, 0.10));
+        gc.fillRect(x + pixel * 2, y + pixel * 4, pixel * 2, pixel * 2);
+        gc.fillRect(x + getWidth() - pixel * 4, y + pixel * 4, pixel * 2, pixel * 2);
+
+        gc.setFill(Color.color(0.1, 0.1, 0.12, 0.95));
+        gc.fillRect(x, y - pixel * 2, getWidth(), pixel);
         gc.setFill(Color.color(0.9, 0.16, 0.16, 0.95));
-        gc.fillRect(getX(), getY() - 12, getWidth() * (hp / (double) maxHp), 6);
+        gc.fillRect(x, y - pixel * 2, getWidth() * (hp / (double) maxHp), pixel);
 
         if (boss) {
-            gc.setFont(Font.font("Georgia", FontWeight.BOLD, 14));
+            gc.setFont(javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 12));
             gc.setFill(Color.WHITE);
-            gc.fillText(name, getX() - 10, getY() - 18);
+            gc.fillText(name, x - 10, y - 16);
         }
     }
 }

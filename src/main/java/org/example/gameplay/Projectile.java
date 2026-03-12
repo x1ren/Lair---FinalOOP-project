@@ -51,7 +51,11 @@ public class Projectile extends GameObject {
 
     @Override
     public void render(GraphicsContext gc) {
+        double x = Math.round(getX());
+        double y = Math.round(getY());
+        gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.35));
+        gc.fillRect(x - 2, y - 2, getWidth() + 4, getHeight() + 4);
         gc.setFill(color);
-        gc.fillOval(getX(), getY(), getWidth(), getHeight());
+        gc.fillRect(x, y, getWidth(), getHeight());
     }
 }

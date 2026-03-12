@@ -41,6 +41,7 @@ public class GameScene {
     private static final int H = Main.HEIGHT;
     private static final double GROUND_Y = 620;
     private static final double GRAVITY = 1500;
+    private static final double PIXEL = 4;
 
     private final Scene scene;
     private final Canvas canvas = new Canvas(W, H);
@@ -445,68 +446,82 @@ public class GameScene {
     }
 
     private void renderBackground(StageDefinition stage) {
-        gc.setFill(Color.color(0.035, 0.04, 0.05));
+        gc.setFill(Color.color(0.01, 0.02, 0.03));
         gc.fillRect(0, 0, W, H);
 
-        gc.setFill(Color.color(stage.tint().getRed() * 0.35, stage.tint().getGreen() * 0.35,
-                stage.tint().getBlue() * 0.35, 0.18));
-        gc.fillOval(-140, -120, 520, 320);
-        gc.fillOval(W - 360, -80, 440, 280);
+        gc.setFill(Color.color(0.03, 0.08, 0.11));
+        gc.fillRect(0, 0, W, H - 96);
 
-        gc.setFill(Color.color(0.08, 0.1, 0.12));
-        gc.fillRect(90, 130, W - 180, 300);
-
-        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.22));
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 10; col++) {
-                gc.fillRect(130 + col * 100, 160 + row * 70, 48, 28);
+        Color darkTint = Color.color(stage.tint().getRed() * 0.45, stage.tint().getGreen() * 0.45,
+                stage.tint().getBlue() * 0.45, 0.55);
+        for (int row = 0; row < 18; row++) {
+            for (int col = 0; col < 32; col++) {
+                if ((row + col) % 3 == 0) {
+                    gc.setFill(Color.color(0.02, 0.10, 0.11, 0.28));
+                    gc.fillRect(col * 40, row * 36, 40, 36);
+                }
+                if ((row + col) % 7 == 0) {
+                    gc.setFill(darkTint);
+                    gc.fillRect(col * 40 + 8, row * 36 + 8, 12, 12);
+                }
             }
         }
 
-        gc.setStroke(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.12));
-        gc.setLineWidth(2);
-        for (int i = 0; i < 7; i++) {
-            double sx = 40 + i * 190;
-            gc.strokeLine(sx, 0, sx + 120, H);
+        gc.setFill(Color.color(0.07, 0.11, 0.16));
+        gc.fillRect(96, 156, W - 192, 292);
+        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.24));
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 10; col++) {
+                double wx = 128 + col * 112;
+                double wy = 186 + row * 64;
+                gc.fillRect(wx, wy, 36, 28);
+                gc.fillRect(wx + 40, wy, 12, 28);
+            }
         }
 
-        gc.setFill(Color.color(0.06, 0.08, 0.07));
+        gc.setFill(Color.color(0.02, 0.04, 0.05));
+        for (int i = 0; i < 9; i++) {
+            double sx = 70 + i * 150;
+            gc.fillRect(sx, 0, 6, H);
+        }
+
+        gc.setFill(Color.color(0.05, 0.10, 0.07));
         gc.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+        gc.setFill(Color.color(0.10, 0.18, 0.12));
+        for (int x = 0; x < W; x += 32) {
+            gc.fillRect(x, GROUND_Y + 24, 16, 12);
+        }
     }
 
     private void renderHud(StageDefinition stage) {
         double panelY = 18;
         double panelH = 148;
 
-        gc.setFill(Color.color(0.03, 0.04, 0.05, 0.92));
-        gc.fillRoundRect(20, panelY, 430, panelH, 12, 12);
-        gc.fillRoundRect(W - 380, panelY, 360, panelH, 12, 12);
+        drawPixelPanel(20, panelY, 430, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
+                Color.color(0.10, 0.76, 0.42));
+        drawPixelPanel(W - 380, panelY, 360, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
+                Color.color(0.10, 0.76, 0.42));
 
-        gc.setStroke(Color.color(0.2, 0.65, 0.28, 0.45));
-        gc.setLineWidth(1.5);
-        gc.strokeRoundRect(20, panelY, 430, panelH, 12, 12);
-        gc.strokeRoundRect(W - 380, panelY, 360, panelH, 12, 12);
-
-        gc.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
         gc.setFill(Color.WHITE);
         gc.fillText(character.name, 34, 46);
 
-        gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 13));
-        gc.setFill(Color.color(0.68, 0.72, 0.7));
-        gc.fillText(character.title + "  •  " + weapon.getName(), 34, 68);
-        gc.fillText("Chapter: " + stage.name(), 34, 90);
-        gc.fillText("Objective: " + stage.objective(), 34, 112);
-        gc.fillText("Q Skill: " + character.getSkillName(), 34, 134);
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+        gc.setFill(Color.color(0.74, 0.86, 0.80));
+        gc.fillText(character.title + " | " + weapon.getName(), 34, 68);
+        gc.fillText("CHAPTER: " + stage.name().toUpperCase(), 34, 88);
+        gc.fillText("OBJECTIVE: " + stage.objective().toUpperCase(), 34, 108);
+        gc.fillText("SKILL: " + character.getSkillName().toUpperCase(), 34, 128);
 
-        drawBar(34, 120, 180, 12, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
-        drawBar(226, 120, 180, 12, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
+        drawBar(34, 132, 180, 12, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
+        drawBar(226, 132, 180, 12, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
 
-        gc.setFont(Font.font("Courier New", 12));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.WHITE);
-        gc.fillText("HP " + hp + "/" + maxHp, 34, 145);
-        gc.fillText(getAbilityStatusText(), 226, 145);
+        gc.fillText("HP " + hp + "/" + maxHp, 34, 160);
+        gc.fillText(getAbilityStatusText(), 226, 160);
 
-        gc.setFont(Font.font("Courier New", 12));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.WHITE);
         gc.fillText("Damage " + getCurrentShotDamage(), W - 360, 48);
         gc.fillText("Move " + character.getMovementSpeed() + " (" + (int) character.getMovementSpeedPx() + " px/s)", W - 360, 70);
@@ -529,31 +544,26 @@ public class GameScene {
         gc.setFill(Color.color(0, 0, 0, 0.54));
         gc.fillRect(0, 0, W, H);
 
-        gc.setFill(Color.color(0.04, 0.05, 0.06, 0.94));
-        gc.fillRoundRect(200, 210, W - 400, 180, 16, 16);
-        gc.setStroke(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.8));
-        gc.setLineWidth(2);
-        gc.strokeRoundRect(200, 210, W - 400, 180, 16, 16);
+        drawPixelPanel(200, 210, W - 400, 180, Color.color(0.03, 0.04, 0.06, 0.96),
+                Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.95));
 
-        gc.setFont(Font.font("Georgia", FontWeight.BOLD, 32));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 24));
         gc.setFill(Color.WHITE);
         gc.fillText(stage.name(), W / 2.0 - textWidth(stage.name(), 32) / 2, 265);
 
-        gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 18));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
         gc.setFill(Color.color(0.7, 0.75, 0.72));
-        gc.fillText(stage.objective(), W / 2.0 - textWidth(stage.objective(), 18) / 2, 304);
+        gc.fillText(stage.objective().toUpperCase(), W / 2.0 - textWidth(stage.objective(), 15) / 2, 304);
 
-        gc.setFont(Font.font("Georgia", 15));
+        gc.setFont(Font.font("Monospaced", 13));
         gc.setFill(Color.color(0.86, 0.86, 0.86));
-        wrapText(stage.description(), 240, 338, W - 480, 24);
+        wrapText(stage.description(), 240, 338, W - 480, 20);
     }
 
     private void renderStatusBanner() {
-        gc.setFill(Color.color(0.02, 0.03, 0.04, 0.88));
-        gc.fillRoundRect(W / 2.0 - 180, H - 94, 360, 42, 12, 12);
-        gc.setStroke(Color.color(0.18, 0.8, 0.32, 0.65));
-        gc.strokeRoundRect(W / 2.0 - 180, H - 94, 360, 42, 12, 12);
-        gc.setFont(Font.font("Georgia", FontWeight.BOLD, 16));
+        drawPixelPanel(W / 2.0 - 180, H - 94, 360, 42, Color.color(0.02, 0.03, 0.04, 0.92),
+                Color.color(0.18, 0.8, 0.32, 0.85));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 16));
         gc.setFill(Color.color(0.9, 0.95, 0.9));
         gc.fillText(statusText, W / 2.0 - textWidth(statusText, 16) / 2, H - 66);
     }
@@ -562,25 +572,22 @@ public class GameScene {
         gc.setFill(Color.color(0, 0, 0, 0.76));
         gc.fillRect(0, 0, W, H);
 
-        gc.setFill(Color.color(0.04, 0.05, 0.06, 0.96));
-        gc.fillRoundRect(120, 120, W - 240, H - 240, 18, 18);
-        gc.setStroke(Color.color(0.18, 0.82, 0.34, 0.7));
-        gc.setLineWidth(2);
-        gc.strokeRoundRect(120, 120, W - 240, H - 240, 18, 18);
+        drawPixelPanel(120, 120, W - 240, H - 240, Color.color(0.04, 0.05, 0.06, 0.98),
+                Color.color(0.18, 0.82, 0.34, 0.85));
 
         String title = victory ? "THE LAIR" : "Synchronization Failed";
-        gc.setFont(Font.font("Georgia", FontWeight.BOLD, 38));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 34));
         gc.setFill(Color.WHITE);
         gc.fillText(title, W / 2.0 - textWidth(title, 38) / 2, 190);
 
-        gc.setFont(Font.font("Georgia", FontPosture.ITALIC, 18));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
         gc.setFill(Color.color(0.75, 0.8, 0.76));
         String subtitle = victory
                 ? "The cure was never a cure. Sir Khai was never Sir Khai."
                 : "The campus falls silent as LAIR keeps learning.";
         gc.fillText(subtitle, W / 2.0 - textWidth(subtitle, 18) / 2, 230);
 
-        gc.setFont(Font.font("Georgia", 16));
+        gc.setFont(Font.font("Monospaced", 13));
         gc.setFill(Color.color(0.9, 0.9, 0.9));
         if (victory) {
             wrapText("Caesar drops the stabilized vial, but the real twist waits outside. "
@@ -593,17 +600,42 @@ public class GameScene {
                     170, 300, W - 340, 28);
         }
 
-        gc.setFont(Font.font("Courier New", FontWeight.BOLD, 14));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
         gc.setFill(Color.color(0.18, 0.85, 0.32));
         String prompt = "Press ENTER or SPACE to return to character select";
         gc.fillText(prompt, W / 2.0 - textWidth(prompt, 14) / 2, H - 150);
     }
 
     private void drawBar(double x, double y, double width, double height, double fill, Color color) {
+        x = snap(x);
+        y = snap(y);
+        width = snap(width);
+        height = snap(height);
+
         gc.setFill(Color.color(0.12, 0.14, 0.16));
-        gc.fillRoundRect(x, y, width, height, 6, 6);
+        gc.fillRect(x, y, width, height);
+        gc.setFill(Color.color(0.05, 0.06, 0.08));
+        gc.fillRect(x + PIXEL, y + PIXEL, width - PIXEL * 2, height - PIXEL * 2);
         gc.setFill(color);
-        gc.fillRoundRect(x, y, width * clamp(fill, 0, 1), height, 6, 6);
+        gc.fillRect(x + PIXEL, y + PIXEL, (width - PIXEL * 2) * clamp(fill, 0, 1), height - PIXEL * 2);
+    }
+
+    private void drawPixelPanel(double x, double y, double width, double height, Color bg, Color border) {
+        x = snap(x);
+        y = snap(y);
+        width = snap(width);
+        height = snap(height);
+
+        gc.setFill(border);
+        gc.fillRect(x, y, width, height);
+        gc.setFill(Color.color(0.02, 0.03, 0.03));
+        gc.fillRect(x + PIXEL, y + PIXEL, width - PIXEL * 2, height - PIXEL * 2);
+        gc.setFill(bg);
+        gc.fillRect(x + PIXEL * 2, y + PIXEL * 2, width - PIXEL * 4, height - PIXEL * 4);
+    }
+
+    private double snap(double value) {
+        return Math.round(value / PIXEL) * PIXEL;
     }
 
     private void wrapText(String text, double x, double y, double maxWidth, double lineHeight) {

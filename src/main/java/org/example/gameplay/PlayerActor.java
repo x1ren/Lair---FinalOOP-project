@@ -67,13 +67,27 @@ public class PlayerActor extends GameObject {
 
     @Override
     public void render(GraphicsContext gc) {
-        gc.setFill(Color.color(auraColor.getRed(), auraColor.getGreen(), auraColor.getBlue(), 0.18));
-        gc.fillOval(getX() - 18, getY() - 18, getWidth() + 36, getHeight() + 36);
+        double x = Math.round(getX());
+        double y = Math.round(getY());
+        double pixel = 4;
 
-        gc.setFill(Color.color(0.9, 0.94, 0.96));
-        gc.fillRoundRect(getX(), getY(), getWidth(), getHeight(), 8, 8);
+        gc.setFill(Color.color(auraColor.getRed(), auraColor.getGreen(), auraColor.getBlue(), 0.22));
+        gc.fillRect(x - 8, y - 8, getWidth() + 16, getHeight() + 16);
 
-        gc.setFill(Color.color(auraColor.getRed(), auraColor.getGreen(), auraColor.getBlue(), 0.9));
-        gc.fillRect(getX() + (facing > 0 ? getWidth() : -10), getY() + 18, 14, 4);
+        gc.setFill(Color.color(0.80, 0.86, 0.90));
+        gc.fillRect(x + pixel * 2, y, pixel * 6, pixel * 3);
+        gc.fillRect(x + pixel, y + pixel * 3, pixel * 8, pixel * 7);
+
+        gc.setFill(Color.color(0.18, 0.20, 0.24));
+        gc.fillRect(x + pixel * 2, y + pixel * 4, pixel * 2, pixel * 2);
+        gc.fillRect(x + pixel * 6, y + pixel * 4, pixel * 2, pixel * 2);
+
+        gc.setFill(Color.color(0.64, 0.70, 0.76));
+        gc.fillRect(x + pixel * 2, y + pixel * 10, pixel * 2, pixel * 4);
+        gc.fillRect(x + pixel * 6, y + pixel * 10, pixel * 2, pixel * 4);
+
+        gc.setFill(Color.color(auraColor.getRed(), auraColor.getGreen(), auraColor.getBlue(), 0.95));
+        gc.fillRect(x + (facing > 0 ? pixel * 8 : -pixel * 2), y + pixel * 5, pixel * 4, pixel);
+        gc.fillRect(x + (facing > 0 ? pixel * 10 : -pixel * 4), y + pixel * 4, pixel * 2, pixel * 3);
     }
 }

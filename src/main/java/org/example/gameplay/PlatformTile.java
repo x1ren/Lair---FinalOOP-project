@@ -11,7 +11,17 @@ public class PlatformTile extends GameObject {
 
     @Override
     public void render(GraphicsContext gc) {
-        gc.setFill(Color.color(0.18, 0.2, 0.22));
-        gc.fillRoundRect(getX(), getY(), getWidth(), getHeight(), 8, 8);
+        double x = Math.round(getX());
+        double y = Math.round(getY());
+        double tile = 8;
+
+        gc.setFill(Color.color(0.16, 0.20, 0.24));
+        gc.fillRect(x, y, getWidth(), getHeight());
+        gc.setFill(Color.color(0.26, 0.32, 0.36));
+        for (double px = x; px < x + getWidth(); px += tile * 2) {
+            gc.fillRect(px, y, tile, tile);
+        }
+        gc.setFill(Color.color(0.09, 0.12, 0.14));
+        gc.fillRect(x, y + getHeight() - 4, getWidth(), 4);
     }
 }
