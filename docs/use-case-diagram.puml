@@ -14,7 +14,7 @@ rectangle "THE LAIR Game System" {
   usecase "Fight Enemies" as UC_FightEnemies
   usecase "Fight Boss" as UC_FightBoss
   usecase "Fight Caesar Hunos" as UC_Caesar
-  usecase "Secret Ending" as UC_Khai
+  usecase "Fight LAIR Mimic" as UC_Khai
   usecase "Use Character Skill" as UC_Skill
   usecase "Reload Weapon" as UC_Reload
   usecase "View Ending" as UC_Ending
@@ -23,6 +23,8 @@ rectangle "THE LAIR Game System" {
 
 Player -- UC_Start
 Player -- UC_Play
+Player -- UC_Skill
+Player -- UC_Reload
 Player -- UC_Exit
 
 UC_Start ..> UC_Intro : <<include>>

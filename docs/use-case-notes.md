@@ -27,7 +27,7 @@ So the revised diagram keeps only the main goals:
 - `Fight Enemies`
 - `Fight Boss`
 - `Fight Caesar Hunos`
-- `Fight False Sir Khai`
+- `Fight LAIR Mimic`
 - `Use Character Skill`
 - `Reload Weapon`
 - `View Ending`
@@ -41,6 +41,8 @@ The `Player` is connected by simple lines to the major use cases:
 
 - `Start New Game`
 - `Play Game`
+- `Use Character Skill`
+- `Reload Weapon`
 - `Exit Game`
 
 This follows the note that association shows interaction between an actor and a use case.
@@ -68,17 +70,18 @@ Because the current build assigns one weapon to each survivor automatically, wea
 `Use Character Skill` extends `Fight Enemies`  
 `Reload Weapon` extends `Fight Enemies`
 
-These are optional actions that may happen during combat, which matches the lecture note for `extend`.
+These are optional actions that may happen during combat, which matches the lecture note for `extend`.  
+They are also connected directly to `Player` because the player explicitly triggers them through gameplay input.
 
 ### Generalization
 
-`Fight Caesar Hunos` and `Fight False Sir Khai` are specialized forms of `Fight Boss`.
+`Fight Caesar Hunos` and `Fight LAIR Mimic` are specialized forms of `Fight Boss`.
 
 This matches the note that generalization represents an “is-a” relationship.
 
 ## Short explanation for reporting
 
-“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight. Character choice also determines the player’s fixed weapon loadout.” 
+“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight. The player is also directly associated with using character skills and reloading because those are explicit player-triggered actions in combat. Character choice also determines the player’s fixed weapon loadout.”
 
 ## Related documents
 

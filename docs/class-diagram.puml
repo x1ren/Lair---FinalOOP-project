@@ -29,6 +29,7 @@ package "org.example.gameplay" {
   class Projectile
   class PlatformTile
   class StageDefinition
+  class StageCatalog
   class "EntityManager<T extends GameObject>" as EntityManager
 }
 
@@ -56,6 +57,7 @@ GameScene --> PlayerActor
 GameScene --> EnemyActor
 GameScene --> Projectile
 GameScene --> PlatformTile
+GameScene --> StageCatalog
 GameScene --> StageDefinition
 GameScene --> EntityManager
 
