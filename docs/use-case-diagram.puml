@@ -10,44 +10,32 @@ rectangle "THE LAIR Game System" {
   usecase "View Story Intro" as UC_Intro
   usecase "Select Character" as UC_SelectCharacter
   usecase "Play Game" as UC_Play
+  usecase "Use Character Skill" as UC_Skill
+  usecase "Reload Weapon" as UC_Reload
   usecase "Clear Story Stages" as UC_Stages
   usecase "Clear Library" as UC_Library
   usecase "Clear Canteen" as UC_Canteen
   usecase "Clear Gym" as UC_Gym
   usecase "Clear Courtyard" as UC_Courtyard
-  usecase "Fight Minions" as UC_FightEnemies
-  usecase "Fight Boss" as UC_FightBoss
-  usecase "Fight Caesar Hunos" as UC_Caesar
-  usecase "Fight LAIR Mimic" as UC_Khai
-  usecase "Use Character Skill" as UC_Skill
-  usecase "Reload Weapon" as UC_Reload
   usecase "View Ending" as UC_Ending
   usecase "Exit Game" as UC_Exit
 }
 
 Player -- UC_Start
 Player -- UC_Play
-Player -- UC_Skill
-Player -- UC_Reload
 Player -- UC_Exit
 
 UC_Start ..> UC_Intro : <<include>>
 UC_Start ..> UC_SelectCharacter : <<include>>
 
+UC_Skill ..> UC_Play : <<extend>>
+UC_Reload ..> UC_Play : <<extend>>
 UC_Play ..> UC_Stages : <<include>>
-UC_Play ..> UC_FightEnemies : <<include>>
-UC_Play ..> UC_FightBoss : <<include>>
 UC_Play ..> UC_Ending : <<include>>
 
 UC_Stages ..> UC_Library : <<include>>
 UC_Stages ..> UC_Canteen : <<include>>
 UC_Stages ..> UC_Gym : <<include>>
 UC_Stages ..> UC_Courtyard : <<include>>
-
-UC_Skill ..> UC_FightEnemies : <<extend>>
-UC_Reload ..> UC_FightEnemies : <<extend>>
-
-UC_Caesar -|> UC_FightBoss
-UC_Khai -|> UC_FightBoss
 
 @enduml

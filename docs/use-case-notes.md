@@ -28,10 +28,6 @@ So the revised diagram keeps only the main goals:
 - `Clear Canteen`
 - `Clear Gym`
 - `Clear Courtyard`
-- `Fight Minions`
-- `Fight Boss`
-- `Fight Caesar Hunos`
-- `Fight LAIR Mimic`
 - `Use Character Skill`
 - `Reload Weapon`
 - `View Ending`
@@ -45,8 +41,6 @@ The `Player` is connected by simple lines to the major use cases:
 
 - `Start New Game`
 - `Play Game`
-- `Use Character Skill`
-- `Reload Weapon`
 - `Exit Game`
 
 This follows the note that association shows interaction between an actor and a use case.
@@ -61,8 +55,6 @@ This follows the note that association shows interaction between an actor and a 
 `Play Game` includes:
 
 - `Clear Story Stages`
-- `Fight Minions`
-- `Fight Boss`
 - `View Ending`
 
 `Clear Story Stages` includes:
@@ -78,21 +70,16 @@ Because the current build assigns one weapon to each survivor automatically, wea
 
 ### Extend
 
-`Use Character Skill` extends `Fight Minions`  
-`Reload Weapon` extends `Fight Minions`
+`Use Character Skill` extends `Play Game`  
+`Reload Weapon` extends `Play Game`
 
-These are optional actions that may happen during combat, which matches the lecture note for `extend`.  
-They are also connected directly to `Player` because the player explicitly triggers them through gameplay input.
+These are optional actions that may happen during gameplay, which matches the lecture note for `extend`.
 
-### Generalization
-
-`Fight Caesar Hunos` and `Fight LAIR Mimic` are specialized forms of `Fight Boss`.
-
-This matches the note that generalization represents an “is-a” relationship.
+The diagram no longer separates generic `Fight Minions` and `Fight Boss` use cases, because combat is already part of clearing each story stage. That keeps the model simpler and avoids repeating the same gameplay idea multiple times.
 
 ## Short explanation for reporting
 
-“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight. It also shows the four required story stages as included parts of clearing the game. The player is directly associated with using character skills and reloading because those are explicit player-triggered actions in combat. Character choice also determines the player’s fixed weapon loadout.”
+“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, and extend for optional gameplay actions. It also shows the four required story stages as included parts of clearing the game. Character skills and weapon reloads are modeled as optional gameplay actions under Play Game. Character choice also determines the player’s fixed weapon loadout.”
 
 ## Related documents
 

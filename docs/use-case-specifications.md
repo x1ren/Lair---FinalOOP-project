@@ -42,53 +42,24 @@ These textual use case descriptions supplement the high-level use case diagram.
 
 1. Player enters the gameplay scene.
 2. Player progresses through the Library, Canteen, Gym, and Courtyard stages.
-3. Player fights standard infected enemies in the active stage.
-4. Player reaches the stage boss encounter.
+3. Player fights minions and bosses inside the active stage.
 5. Player views the ending.
 
-## UC-04 Explore Campus
+## UC-04 Clear Story Stages
 
 **Primary Actor:** Player  
-**Goal:** Move through the infected school areas  
+**Goal:** Complete the required school stages and advance the story  
 **Precondition:** Gameplay has started  
-**Postcondition:** Player advances to the next stage or encounter
+**Postcondition:** Player clears the current stage and unlocks the next one
 
 **Basic Flow**
 
 1. Player moves through the current area.
 2. System presents one of the story stages: Library, Canteen, Gym, or Courtyard.
-3. Player clears the current stage and progresses forward.
+3. Player defeats the stage minions and boss.
+4. System opens the exit to the next stage.
 
-## UC-05 Fight Minions
-
-**Primary Actor:** Player  
-**Goal:** Defeat infected enemies blocking progression  
-**Precondition:** Player is inside gameplay  
-**Postcondition:** Stage is cleared or the player is defeated
-
-**Basic Flow**
-
-1. System spawns stage-specific enemies such as infected librarians, students, or janitors.
-2. Player attacks enemies using the assigned weapon.
-3. Player may use a character skill.
-4. Player may reload the weapon.
-5. System removes defeated enemies.
-
-## UC-06 Fight Boss
-
-**Primary Actor:** Player  
-**Goal:** Defeat a boss encounter tied to the current stage  
-**Precondition:** Player reached a boss stage  
-**Postcondition:** Boss is defeated or player is defeated
-
-**Specializations**
-
-- `Fight Security Guard`
-- `Fight Mutated Vendor`
-- `Fight Caesar Hunos`
-- `Fight LAIR Mimic`
-
-## UC-07 Use Character Skill
+## UC-05 Use Character Skill
 
 **Primary Actor:** Player  
 **Goal:** Trigger the selected survivor's special ability during combat  
@@ -102,7 +73,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 3. System applies the selected character's skill effect.
 4. System starts the skill cooldown.
 
-## UC-08 Reload Weapon
+## UC-06 Reload Weapon
 
 **Primary Actor:** Player  
 **Goal:** Refill the current weapon magazine  
@@ -116,7 +87,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 3. System starts the reload timer.
 4. System refills the weapon magazine when the reload completes.
 
-## UC-09 View Ending
+## UC-07 View Ending
 
 **Primary Actor:** Player  
 **Goal:** See the outcome of the game run  
@@ -129,7 +100,7 @@ These textual use case descriptions supplement the high-level use case diagram.
 2. Player reads the result of the run.
 3. Player decides whether to return or exit.
 
-## UC-10 Exit Game
+## UC-08 Exit Game
 
 **Primary Actor:** Player  
 **Goal:** Leave the application  
