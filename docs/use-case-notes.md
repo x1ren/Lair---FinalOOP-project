@@ -23,7 +23,11 @@ So the revised diagram keeps only the main goals:
 - `View Story Intro`
 - `Select Character`
 - `Play Game`
-- `Explore Campus`
+- `Clear Story Stages`
+- `Clear Library`
+- `Clear Canteen`
+- `Clear Gym`
+- `Clear Courtyard`
 - `Fight Enemies`
 - `Fight Boss`
 - `Fight Caesar Hunos`
@@ -56,10 +60,17 @@ This follows the note that association shows interaction between an actor and a 
 
 `Play Game` includes:
 
-- `Explore Campus`
+- `Clear Story Stages`
 - `Fight Enemies`
 - `Fight Boss`
 - `View Ending`
+
+`Clear Story Stages` includes:
+
+- `Clear Library`
+- `Clear Canteen`
+- `Clear Gym`
+- `Clear Courtyard`
 
 These are required parts of those larger use cases.
 
@@ -81,7 +92,7 @@ This matches the note that generalization represents an “is-a” relationship.
 
 ## Short explanation for reporting
 
-“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight. The player is also directly associated with using character skills and reloading because those are explicit player-triggered actions in combat. Character choice also determines the player’s fixed weapon loadout.”
+“Our use case diagram presents a high-level overview of the interaction between the player and THE LAIR game system. The player is the main actor. The diagram uses association for direct interaction, include for required sub-functions, extend for optional combat actions, and generalization to show that the two boss fights are specialized versions of a general boss fight. It also shows the four required story stages as included parts of clearing the game. The player is directly associated with using character skills and reloading because those are explicit player-triggered actions in combat. Character choice also determines the player’s fixed weapon loadout.”
 
 ## Related documents
 
