@@ -12,6 +12,10 @@ public class EnemyActor extends GameObject {
     private final Color color;
     private final boolean boss;
     private double attackCooldown;
+    private double slowTimer;
+    private int bleedTicks;
+    private int bleedTickDamage;
+    private double bleedTickTimer;
 
     public EnemyActor(String name, double x, double y, double width, double height,
                       int hp, int maxHp, double speed, Color color, boolean boss) {
@@ -60,13 +64,44 @@ public class EnemyActor extends GameObject {
         hp -= damage;
     }
 
+    public void applySlow(double duration) {
+        slowTimer = Math.max(slowTimer, duration);
+    }
+
+    public void applyBleed(int totalDamage) {
+        bleedTicks += 3;
+        bleedTickDamage = Math.max(bleedTickDamage, Math.max(1, totalDamage / 3));
+        if (bleedTickTimer <= 0) {
+            bleedTickTimer = 0.35;
+        }
+    }
+
     public boolean isDefeated() {
         return hp <= 0;
     }
 
+    public void updateStatusEffects(double dt) {
+        slowTimer = Math.max(0, slowTimer - dt);
+
+        if (bleedTicks <= 0) {
+            return;
+        }
+
+        bleedTickTimer -= dt;
+        if (bleedTickTimer <= 0) {
+            takeDamage(bleedTickDamage);
+            bleedTicks--;
+            bleedTickTimer = 0.35;
+            if (bleedTicks <= 0) {
+                bleedTickDamage = 0;
+            }
+        }
+    }
+
     public void chase(PlayerActor player, double dt, double minX, double maxX) {
         double direction = Math.signum(player.getCenterX() - getCenterX());
-        moveBy(direction * speed * dt, 0);
+        double effectiveSpeed = slowTimer > 0 ? speed * 0.55 : speed;
+        moveBy(direction * effectiveSpeed * dt, 0);
         setX(Math.max(minX, Math.min(maxX, getX())));
     }
 
@@ -91,6 +126,16 @@ public class EnemyActor extends GameObject {
         gc.fillRect(x, y - pixel * 2, getWidth(), pixel);
         gc.setFill(Color.color(0.9, 0.16, 0.16, 0.95));
         gc.fillRect(x, y - pixel * 2, getWidth() * (hp / (double) maxHp), pixel);
+
+        if (slowTimer > 0) {
+            gc.setFill(Color.color(0.25, 0.7, 1.0, 0.3));
+            gc.fillRect(x - pixel, y - pixel, getWidth() + pixel * 2, getHeight() + pixel * 2);
+        }
+
+        if (bleedTicks > 0) {
+            gc.setFill(Color.color(1.0, 0.12, 0.18, 0.24));
+            gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
+        }
 
         if (boss) {
             gc.setFont(javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 12));

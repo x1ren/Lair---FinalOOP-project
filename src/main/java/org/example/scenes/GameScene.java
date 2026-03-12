@@ -18,6 +18,7 @@ import org.example.gameplay.EntityManager;
 import org.example.gameplay.PlatformTile;
 import org.example.gameplay.PlayerActor;
 import org.example.gameplay.Projectile;
+import org.example.gameplay.StageCatalog;
 import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterType;
 import org.example.weapons.Weapon;
@@ -59,26 +60,7 @@ public class GameScene {
             new PlatformTile(520, 430, 240, 16),
             new PlatformTile(900, 340, 180, 16)
     );
-    private final List<StageDefinition> stages = List.of(
-            new StageDefinition("Awakening Wing", "Clear the infected classrooms.",
-                    "The synchronized survivors wake inside a school that is no longer human.",
-                    5, 60, 72, Color.color(0.18, 0.45, 0.18), false, ""),
-            new StageDefinition("Laboratory Block", "Survive the toxic mutations.",
-                    "LAIR thickens in the labs. The air feels heavier with every breath.",
-                    6, 72, 82, Color.color(0.25, 0.5, 0.16), false, ""),
-            new StageDefinition("Silent Library", "Hunt the stalkers between the shelves.",
-                    "It does not only infect. It observes, imitates, and waits.",
-                    6, 78, 88, Color.color(0.36, 0.36, 0.38), false, ""),
-            new StageDefinition("Gymnasium Nest", "Break through the brute swarm.",
-                    "The gym became a nest. Something large kept feeding here.",
-                    7, 92, 98, Color.color(0.5, 0.28, 0.12), false, ""),
-            new StageDefinition("Main Building Core", "Defeat Caesar, the primary host.",
-                    "\"You should have left me outside.\"",
-                    1, 450, 86, Color.color(0.68, 0.16, 0.16), true, "Caesar Hunos"),
-            new StageDefinition("Outer Grounds", "Defeat the false Sir Khai.",
-                    "The jacket by the tree is torn and soaked in blood. The cure was bait.",
-                    1, 520, 102, Color.color(0.58, 0.72, 0.2), true, "False Sir Khai")
-    );
+    private final List<StageDefinition> stages = StageCatalog.buildStoryStages();
 
     private final GameLoop loop;
 
@@ -96,11 +78,14 @@ public class GameScene {
     private double statusTimer = 0;
     private String statusText = "";
 
-    private double damageBoostTimer = 0;
-    private double dashTimer = 0;
+    private double hemorrhageTimer = 0;
+    private double suppressTimer = 0;
+    private double overdriveTimer = 0;
+    private double focusTimer = 0;
     private double invulnerableTimer = 0;
-    private int shield = 0;
-    private int overclockShots = 0;
+    private int focusShots = 0;
+    private int overloadShots = 0;
+    private boolean stageBossSpawned = false;
 
     private boolean finished = false;
     private boolean victory = false;
@@ -157,9 +142,14 @@ public class GameScene {
         stageIntroTimer = Math.max(0, stageIntroTimer - dt);
         stageAdvanceTimer = Math.max(-1, stageAdvanceTimer - dt);
         statusTimer = Math.max(0, statusTimer - dt);
-        damageBoostTimer = Math.max(0, damageBoostTimer - dt);
-        dashTimer = Math.max(0, dashTimer - dt);
+        hemorrhageTimer = Math.max(0, hemorrhageTimer - dt);
+        suppressTimer = Math.max(0, suppressTimer - dt);
+        overdriveTimer = Math.max(0, overdriveTimer - dt);
+        focusTimer = Math.max(0, focusTimer - dt);
         invulnerableTimer = Math.max(0, invulnerableTimer - dt);
+        if (focusTimer == 0) {
+            focusShots = 0;
+        }
 
         if (reloading && reloadTimer == 0) {
             ammo = weapon.getMagazineSize();
@@ -188,8 +178,7 @@ public class GameScene {
         }
 
         if (!finished && enemies.isEmpty() && stageAdvanceTimer < 0) {
-            stageAdvanceTimer = 2.6;
-            setStatus(stageIndex == stages.size() - 1 ? "The imitation collapses." : "Sector cleared.");
+            handleStageCleared(stage);
         }
 
         input.endFrame();
@@ -197,8 +186,8 @@ public class GameScene {
 
     private void handlePlayerInput() {
         double moveSpeed = character.getMovementSpeedPx();
-        if (dashTimer > 0) {
-            moveSpeed *= 2.3;
+        if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
+            moveSpeed *= 1.35;
         }
 
         player.setVx(0);
@@ -262,6 +251,12 @@ public class GameScene {
                 for (EnemyActor enemy : enemies) {
                     if (CollisionManager.circleHitsRect(projectile, enemy)) {
                         enemy.takeDamage(projectile.getDamage());
+                        if (projectile.getBleedDamage() > 0) {
+                            enemy.applyBleed(projectile.getBleedDamage());
+                        }
+                        if (projectile.getSlowDuration() > 0) {
+                            enemy.applySlow(projectile.getSlowDuration());
+                        }
                         remove = true;
                         break;
                     }
@@ -278,6 +273,7 @@ public class GameScene {
 
     private void updateEnemies(double dt, StageDefinition stage) {
         for (EnemyActor enemy : enemies) {
+            enemy.updateStatusEffects(dt);
             enemy.setAttackCooldown(Math.max(0, enemy.getAttackCooldown() - dt));
             enemy.chase(player, dt, 20, W - enemy.getWidth() - 20);
 
@@ -286,8 +282,8 @@ public class GameScene {
             }
 
             if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
-                applyDamage(stage.boss() ? 22 : 12);
-                enemy.setAttackCooldown(stage.boss() ? 0.8 : 1.1);
+                applyDamage(enemy.isBoss() ? 22 : 12);
+                enemy.setAttackCooldown(enemy.isBoss() ? 0.8 : 1.1);
             }
         }
     }
@@ -300,15 +296,23 @@ public class GameScene {
 
         ammo--;
         shootCooldown = weapon.getFireRate();
+        if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
+            shootCooldown *= 0.55;
+        }
 
         double originX = player.getCenterX();
         double originY = player.getY() + player.getHeight() * 0.35;
         double angle = Math.atan2(input.getMouseY() - originY, input.getMouseX() - originX);
 
         int projectileCount = weapon.getPelletsPerShot();
+        if (overloadShots > 0 && character == CharacterType.GAILE_AMOLONG) {
+            projectileCount *= 2;
+        }
         int totalDamage = getCurrentShotDamage();
         int baseDamage = Math.max(1, totalDamage / projectileCount);
         int remainder = Math.max(0, totalDamage % projectileCount);
+        int bleedDamage = hemorrhageTimer > 0 && character == CharacterType.JOSEPH_JIMENEZ ? 24 : 0;
+        double slowDuration = suppressTimer > 0 && character == CharacterType.IBEN_ANOOS ? 1.8 : 0;
         for (int i = 0; i < projectileCount; i++) {
             double spread = (random.nextDouble() - 0.5) * weapon.getSpread();
             double shotAngle = angle + spread;
@@ -320,12 +324,17 @@ public class GameScene {
                     Math.cos(shotAngle) * weapon.getProjectileSpeed(),
                     Math.sin(shotAngle) * weapon.getProjectileSpeed(),
                     damage,
-                    weapon.getProjectileColor()
+                    weapon.getProjectileColor(),
+                    bleedDamage,
+                    slowDuration
             ));
         }
 
-        if (overclockShots > 0) {
-            overclockShots--;
+        if (overloadShots > 0 && character == CharacterType.GAILE_AMOLONG) {
+            overloadShots--;
+        }
+        if (focusShots > 0 && character == CharacterType.JAMUEL_BACUS) {
+            focusShots--;
         }
     }
 
@@ -337,41 +346,38 @@ public class GameScene {
 
         switch (character) {
             case JOSEPH_JIMENEZ -> {
-                damageBoostTimer = 4.5;
+                hemorrhageTimer = 5.0;
                 abilityCooldown = character.getSkillCooldown();
-                setStatus("Adrenal Lock boosted outgoing damage.");
+                setStatus("Hemorrhage active. Hits inflict bleed.");
             }
             case IBEN_ANOOS -> {
-                dashTimer = 0.18;
-                invulnerableTimer = 0.7;
+                suppressTimer = 5.0;
                 abilityCooldown = character.getSkillCooldown();
-                setStatus("Phase Dash triggered.");
+                setStatus("Suppress active. Hits slow enemies.");
             }
             case ILDE_JAN_FIGUERAS -> {
-                shield += 80;
+                overdriveTimer = 5.0;
                 abilityCooldown = character.getSkillCooldown();
-                setStatus("Barrier Pulse absorbed 80 damage.");
+                setStatus("Overdrive increased speed and fire rate.");
             }
             case GAILE_AMOLONG -> {
-                overclockShots = Math.max(overclockShots, 2);
+                overloadShots = Math.max(overloadShots, 2);
                 abilityCooldown = character.getSkillCooldown();
-                setStatus("Overclock primed the next 2 shots.");
+                setStatus("Overload primed the next 2 blasts.");
             }
             case JAMUEL_BACUS -> {
-                hp = Math.min(maxHp, hp + 60);
+                focusTimer = 5.0;
+                focusShots = 1;
                 abilityCooldown = character.getSkillCooldown();
-                setStatus("Reserve Conversion restored 60 HP.");
+                setStatus("Focus primed the next sniper shot.");
             }
         }
     }
 
     private int getCurrentShotDamage() {
         double damage = character.getDamage();
-        if (damageBoostTimer > 0) {
-            damage *= 1.35;
-        }
-        if (overclockShots > 0) {
-            damage *= 1.25;
+        if (focusShots > 0 && focusTimer > 0 && character == CharacterType.JAMUEL_BACUS) {
+            damage *= 3.0;
         }
         return (int) Math.round(damage);
     }
@@ -379,12 +385,6 @@ public class GameScene {
     private void applyDamage(int damage) {
         if (invulnerableTimer > 0) {
             return;
-        }
-
-        if (shield > 0) {
-            int absorbed = Math.min(shield, damage);
-            shield -= absorbed;
-            damage -= absorbed;
         }
 
         hp -= damage;
@@ -405,19 +405,51 @@ public class GameScene {
         enemies.clear();
         stageIntroTimer = 4.5;
         stageAdvanceTimer = -1;
+        stageBossSpawned = false;
 
         StageDefinition stage = stages.get(stageIndex);
-        if (stage.boss()) {
-            double x = stageIndex == 4 ? 920 : 980;
-            enemies.add(new EnemyActor(stage.bossName(), x, GROUND_Y - 96, 74, 96,
-                    stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), true));
-        } else {
-            for (int i = 0; i < stage.enemyCount(); i++) {
-                double x = 620 + i * 80;
-                enemies.add(new EnemyActor("Infected", x, GROUND_Y - 54, 42, 54,
-                        stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false));
-            }
+        if (stage.hasMobs()) {
+            spawnMobWave(stage);
+        } else if (stage.hasBoss()) {
+            spawnBoss(stage);
         }
+    }
+
+    private void spawnMobWave(StageDefinition stage) {
+        for (int i = 0; i < stage.enemyCount(); i++) {
+            double x = 620 + i * 84;
+            enemies.add(new EnemyActor(stage.enemyName(), x, GROUND_Y - 54, 42, 54,
+                    stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false));
+        }
+    }
+
+    private void spawnBoss(StageDefinition stage) {
+        stageBossSpawned = true;
+        double x = stageIndex == stages.size() - 1 ? 980 : 920;
+        enemies.add(new EnemyActor(stage.bossName(), x, GROUND_Y - 96, 74, 96,
+                stage.bossHealth(), stage.bossHealth(), stage.bossSpeed(), stage.tint(), true));
+    }
+
+    private void handleStageCleared(StageDefinition stage) {
+        if (stage.hasBoss() && !stageBossSpawned) {
+            spawnBoss(stage);
+            stageIntroTimer = 2.8;
+            setStatus(stage.bossName() + " has appeared.");
+            return;
+        }
+
+        stageAdvanceTimer = 2.6;
+        setStatus(getStageClearMessage(stage));
+    }
+
+    private String getStageClearMessage(StageDefinition stage) {
+        if (stageIndex == stages.size() - 1) {
+            return "The mimic collapses.";
+        }
+        if ("Caesar Hunos".equals(stage.bossName())) {
+            return "Caesar dropped the stabilized LAIR vial.";
+        }
+        return stage.name() + " cleared.";
     }
 
     private void renderGame() {
@@ -529,13 +561,15 @@ public class GameScene {
         gc.fillText(reloadTimer > 0 ? "Reload " + String.format("%.1fs", reloadTimer) : "Reload ready", W - 360, 114);
         gc.fillText("Controls: A/D or Arrows  |  SPACE  |  Mouse  |  Q  |  R", W - 360, 136);
 
-        if (damageBoostTimer > 0 || shield > 0 || overclockShots > 0 || dashTimer > 0) {
+        if (hemorrhageTimer > 0 || suppressTimer > 0 || overdriveTimer > 0
+                || overloadShots > 0 || focusShots > 0) {
             gc.setFill(Color.color(0.15, 0.9, 0.4));
             String buffLine = "Buffs:";
-            if (damageBoostTimer > 0) buffLine += " Damage Boost";
-            if (dashTimer > 0) buffLine += " Dash";
-            if (shield > 0) buffLine += " Shield " + shield;
-            if (overclockShots > 0) buffLine += " Overclock x" + overclockShots;
+            if (hemorrhageTimer > 0) buffLine += " Hemorrhage";
+            if (suppressTimer > 0) buffLine += " Suppress";
+            if (overdriveTimer > 0) buffLine += " Overdrive";
+            if (overloadShots > 0) buffLine += " Overload x" + overloadShots;
+            if (focusShots > 0) buffLine += " Focus";
             gc.fillText(buffLine, W - 360, 156);
         }
     }
@@ -583,16 +617,16 @@ public class GameScene {
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
         gc.setFill(Color.color(0.75, 0.8, 0.76));
         String subtitle = victory
-                ? "The cure was never a cure. Sir Khai was never Sir Khai."
+                ? "Caesar was only the first host. The real trap was waiting in the courtyard."
                 : "The campus falls silent as LAIR keeps learning.";
         gc.fillText(subtitle, W / 2.0 - textWidth(subtitle, 18) / 2, 230);
 
         gc.setFont(Font.font("Monospaced", 13));
         gc.setFill(Color.color(0.9, 0.9, 0.9));
         if (victory) {
-            wrapText("Caesar drops the stabilized vial, but the real twist waits outside. "
-                    + "Sir Khai's torn jacket lies in the grass. The thing guiding you was LAIR wearing his face. "
-                    + "It learned trust first, then hunger. The final mimic falls, but the infection is still out there.",
+            wrapText("Caesar falls in the gym and drops a stabilized LAIR vial, but the real Sir Khai was already dead. "
+                    + "The creature guiding you was LAIR wearing his face, learning trust before it fed. "
+                    + "In the courtyard, the mimic reveals itself and the final fight ends the night's worst lie.",
                     170, 290, W - 340, 28);
         } else {
             wrapText("You were close, but the synchronized aura failed before the school could be reclaimed. "

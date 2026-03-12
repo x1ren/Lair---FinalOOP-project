@@ -6,10 +6,20 @@ public record StageDefinition(
         String name,
         String objective,
         String description,
+        String enemyName,
         int enemyCount,
         int enemyHealth,
         double enemySpeed,
-        Color tint,
-        boolean boss,
-        String bossName
-) { }
+        String bossName,
+        int bossHealth,
+        double bossSpeed,
+        Color tint
+) {
+    public boolean hasMobs() {
+        return enemyCount > 0;
+    }
+
+    public boolean hasBoss() {
+        return bossName != null && !bossName.isBlank();
+    }
+}

@@ -15,14 +15,12 @@ import java.util.List;
  * IntroScene — cinematic dialogue intro for THE LAIR.
  *
  * Phases:
- *   0  : Title card  "T H E   L A I R"
- *   1  : Setting     Campus at night, six friends, final project
- *   2  : Dialogue    Friends talking / arguing
- *   3  : The meteor  Sky lights up — crash
- *   4  : Caesar      "Just one picture..." — flash — infection
- *   5  : The attack  Friends knocked out
- *   6  : Awakening   Sir Khai speaks — something feels off
- *   7  : Transition  → Character Select
+ *   0  : Title card
+ *   1  : Setting     Sir Khai helps the group with their project
+ *   2  : Meteor      The six friends investigate the crash
+ *   3  : Infection   Caesar takes the photo and the gas spreads
+ *   4  : Awakening   The school is changed and Sir Khai explains LAIR
+ *   5  : Transition  Player chooses who awakened first
  */
 public class IntroScene {
 
@@ -40,35 +38,31 @@ public class IntroScene {
 
     private final List<DialogueLine> lines = List.of(
             new DialogueLine("—",       "It was supposed to be an ordinary late night on campus.", "calm"),
-            new DialogueLine("—",       "Six students stayed behind to finish their final project: Joseph, Iben, Ilde, Gaille, Jamuel, and Caesar.", "calm"),
-            new DialogueLine("JAMUEL",  "Sir Khai already told us what to fix. We just have to finish.", "calm"),
-            new DialogueLine("IBEN",    "Something feels wrong outside.", "calm"),
+            new DialogueLine("—",       "Before anything strange happened, the six friends asked Sir Khai for help with their final project.", "calm"),
+            new DialogueLine("SIR KHAI","Joseph, Iben, Ilde, Gaille, Jamuel, Caesar. Fix the logic first, then the polish.", "calm"),
+            new DialogueLine("—",       "They thanked him and returned to their classroom, unaware the night was about to change.", "calm"),
 
-            new DialogueLine("—",       "An hour later, the sky ignites.", "event"),
-            new DialogueLine("—",       "A meteor tears across the darkness and crashes near the school grounds.", "event"),
-            new DialogueLine("JOSEPH",  "Back away from the windows.", "shock"),
-            new DialogueLine("ILDE",    "We should check that out.", "shock"),
-            new DialogueLine("JOSEPH",  "No. Deadline first. We finish the project.", "shock"),
-            new DialogueLine("—",       "They return to the classroom. Caesar stays behind.", "event"),
+            new DialogueLine("—",       "About an hour later, the sky suddenly lit up.", "event"),
+            new DialogueLine("—",       "A meteor tore through the darkness and crashed into the school grounds.", "event"),
+            new DialogueLine("ILDE",    "We need to see that up close.", "shock"),
+            new DialogueLine("—",       "The six of them rushed outside and found the meteor pulsing in the field.", "shock"),
+            new DialogueLine("—",       "The others started heading back, but Caesar stayed behind for one quick picture.", "event"),
 
             new DialogueLine("CAESAR",  "Just one picture.", "caesar"),
-            new DialogueLine("—",       "The camera flash goes off.", "event"),
-            new DialogueLine("—",       "The meteor cracks open.", "horror"),
-            new DialogueLine("—",       "A thick glowing gas erupts out and swallows Caesar whole.", "horror"),
-            new DialogueLine("—",       "His veins light up. His bones twist. His eyes stop looking human.", "horror"),
-            new DialogueLine("—",       "Then he attacks.", "horror"),
-            new DialogueLine("—",       "The five survivors are thrown across desks and concrete. Darkness follows.", "horror"),
+            new DialogueLine("—",       "The flash went off. The meteor cracked open.", "horror"),
+            new DialogueLine("—",       "A thick glowing gas burst out and swallowed Caesar first.", "horror"),
+            new DialogueLine("—",       "The others rushed back to help him, but the mist spread around all six of them.", "horror"),
+            new DialogueLine("—",       "Their bodies weakened. Their vision blurred. One by one they collapsed.", "horror"),
 
-            new DialogueLine("—",       "When consciousness returns, the school no longer feels familiar.", "awaken"),
-            new DialogueLine("—",       "Lights flicker red. Vein-like growths pulse through the walls.", "awaken"),
-            new DialogueLine("SIR KHAI","Don't force yourself up yet. You're alive because your exposure was incomplete.", "khai"),
-            new DialogueLine("SIR KHAI","The meteor carried LAIR. It is a living pathogen.", "khai"),
-            new DialogueLine("SIR KHAI","Full exposure mutates the host. Partial exposure creates synchronization.", "khai"),
-            new DialogueLine("SIR KHAI","The gas spread through the campus. Many students and staff are already infected.", "khai"),
-            new DialogueLine("SIR KHAI","Caesar became the primary host. You five became something else.", "khai"),
-            new DialogueLine("SIR KHAI","The infection amplified what was already inside you.", "khai"),
-            new DialogueLine("SIR KHAI","Fight through the school. Reach Caesar. Bring back the stabilized vial.", "khai"),
-            new DialogueLine("SIR KHAI","If we are lucky, it will be a cure.", "khai")
+            new DialogueLine("—",       "When consciousness returned, the school was covered in red light and vein-like growths.", "awaken"),
+            new DialogueLine("SIR KHAI","Easy now. The meteor carried LAIR, an extraterrestrial pathogen that spreads through gas.", "khai"),
+            new DialogueLine("SIR KHAI","Most hosts lose control and become infected. The five of you synchronized with it instead.", "khai"),
+            new DialogueLine("SIR KHAI","That aura in your body can manifest a weapon shaped by instinct and fighting style.", "khai"),
+            new DialogueLine("SIR KHAI","Joseph's rifle bleeds targets. Jamuel's sniper punishes with precision. Gaille's shotgun erupts in bursts.", "khai"),
+            new DialogueLine("SIR KHAI","Ilde moves fastest with an SMG. Iben carries a heavy LMG built for suppression.", "khai"),
+            new DialogueLine("SIR KHAI","Caesar had full compatibility. He became the primary host and moved toward the gym.", "khai"),
+            new DialogueLine("SIR KHAI","Fight through the library, canteen, and gym. Then return with the vial if Caesar drops it.", "khai"),
+            new DialogueLine("SIR KHAI","My memory's kind of blurry. What was your name again?", "khai")
     );
 
     // ── State ─────────────────────────────────────────────────

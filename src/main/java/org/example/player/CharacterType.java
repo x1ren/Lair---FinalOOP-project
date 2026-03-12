@@ -15,58 +15,58 @@ public enum CharacterType {
 
     JOSEPH_JIMENEZ(
             "Joseph Jimenez",
-            "Frontline Assault",
-            "Joseph pushes forward with a fixed assault rifle loadout and raw pressure.",
+            "Balanced Fighter",
+            "All-rounder starter pick with an assault rifle and a bleed-focused ultimate.",
             WeaponType.ASSAULT_RIFLE,
             200,
             130,
             100,
-            "Adrenal Lock",
-            7.0
+            "Hemorrhage",
+            6.0
     ),
     IBEN_ANOOS(
             "Iben Anoos",
-            "Suppressive Gunner",
-            "Iben trades mobility for sustained fire with a heavy LMG.",
+            "Glass Cannon",
+            "High-output LMG user whose suppressive fire slows enemies during the ultimate.",
             WeaponType.LMG,
             200,
             110,
             70,
-            "Phase Dash",
-            4.5
+            "Suppress",
+            6.0
     ),
     ILDE_JAN_FIGUERAS(
             "Ilde Jan Figueras",
-            "Rapid Controller",
-            "Ilde controls the field with an SMG and the fastest movement in the roster.",
+            "Bruiser",
+            "Heavy hitter with an SMG and the fastest movement speed in the roster.",
             WeaponType.SMG,
             200,
             80,
             130,
-            "Barrier Pulse",
-            7.0
+            "Overdrive",
+            5.0
     ),
     GAILE_AMOLONG(
             "Gaille Amolong",
-            "Close-Range Breacher",
-            "Gaille enters every run with a shotgun built for short-range bursts.",
+            "Tank",
+            "Frontline shotgun user with durable stats and an overload burst ultimate.",
             WeaponType.SHOTGUN,
             200,
             180,
             80,
-            "Overclock",
-            7.0
+            "Overload",
+            6.0
     ),
     JAMUEL_BACUS(
             "Jamuel Bacus",
-            "Sharpshooter",
-            "Jamuel carries the sniper role with the highest single-shot output.",
+            "Skill Specialist",
+            "Precision sniper built around tactical skill timing and massive burst windows.",
             WeaponType.SNIPER,
             200,
             250,
             65,
-            "Reserve Conversion",
-            8.0
+            "Focus",
+            6.0
     );
 
     public static final double BASE_MOVE_SPEED = 260.0;
