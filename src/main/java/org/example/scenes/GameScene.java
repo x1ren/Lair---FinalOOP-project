@@ -20,6 +20,7 @@ import org.example.gameplay.PlayerActor;
 import org.example.gameplay.Projectile;
 import org.example.gameplay.StageCatalog;
 import org.example.gameplay.StageDefinition;
+import org.example.gameplay.StageExitMarker;
 import org.example.player.CharacterType;
 import org.example.weapons.Weapon;
 
@@ -55,6 +56,7 @@ public class GameScene {
     private final PlayerActor player;
     private final EntityManager<EnemyActor> enemies = new EntityManager<>();
     private final EntityManager<Projectile> projectiles = new EntityManager<>();
+    private final StageExitMarker stageExit = new StageExitMarker(W - 92, GROUND_Y - 84, 44, 64);
     private final List<PlatformTile> platforms = List.of(
             new PlatformTile(170, 520, 220, 16),
             new PlatformTile(520, 430, 240, 16),
@@ -74,7 +76,6 @@ public class GameScene {
     private double abilityCooldown = 0;
     private boolean reloading = false;
     private double stageIntroTimer = 4.0;
-    private double stageAdvanceTimer = -1;
     private double statusTimer = 0;
     private String statusText = "";
 
@@ -140,7 +141,6 @@ public class GameScene {
         reloadTimer = Math.max(0, reloadTimer - dt);
         abilityCooldown = Math.max(0, abilityCooldown - dt);
         stageIntroTimer = Math.max(0, stageIntroTimer - dt);
-        stageAdvanceTimer = Math.max(-1, stageAdvanceTimer - dt);
         statusTimer = Math.max(0, statusTimer - dt);
         hemorrhageTimer = Math.max(0, hemorrhageTimer - dt);
         suppressTimer = Math.max(0, suppressTimer - dt);
@@ -157,27 +157,18 @@ public class GameScene {
             setStatus("Reload complete.");
         }
 
-        if (stageAdvanceTimer == 0) {
-            if (stageIndex == stages.size() - 1) {
-                finished = true;
-                victory = true;
-            } else {
-                startStage(stageIndex + 1);
-            }
-            stageAdvanceTimer = -1;
-        }
-
         handlePlayerInput();
         updatePlayerPhysics(dt);
         updateProjectiles(dt);
         updateEnemies(dt, stage);
+        updateStageExit();
 
         if (hp <= 0) {
             finished = true;
             victory = false;
         }
 
-        if (!finished && enemies.isEmpty() && stageAdvanceTimer < 0) {
+        if (!finished && enemies.isEmpty() && !stageExit.isActive()) {
             handleStageCleared(stage);
         }
 
@@ -404,8 +395,9 @@ public class GameScene {
         projectiles.clear();
         enemies.clear();
         stageIntroTimer = 4.5;
-        stageAdvanceTimer = -1;
         stageBossSpawned = false;
+        stageExit.setActive(false);
+        stageExit.setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
 
         StageDefinition stage = stages.get(stageIndex);
         if (stage.hasMobs()) {
@@ -438,7 +430,15 @@ public class GameScene {
             return;
         }
 
-        stageAdvanceTimer = 2.6;
+        if (stageIndex == stages.size() - 1) {
+            finished = true;
+            victory = true;
+            setStatus(getStageClearMessage(stage));
+            return;
+        }
+
+        stageExit.setActive(true);
+        stageExit.setLabel("NEXT");
         setStatus(getStageClearMessage(stage));
     }
 
@@ -452,6 +452,16 @@ public class GameScene {
         return stage.name() + " cleared.";
     }
 
+    private void updateStageExit() {
+        if (!stageExit.isActive()) {
+            return;
+        }
+
+        if (CollisionManager.intersects(player, stageExit)) {
+            startStage(stageIndex + 1);
+        }
+    }
+
     private void renderGame() {
         StageDefinition stage = stages.get(stageIndex);
 
@@ -459,6 +469,7 @@ public class GameScene {
         for (PlatformTile platform : platforms) {
             platform.render(gc);
         }
+        stageExit.render(gc);
         player.render(gc);
         projectiles.renderAll(gc);
         enemies.renderAll(gc);
@@ -571,6 +582,11 @@ public class GameScene {
             if (overloadShots > 0) buffLine += " Overload x" + overloadShots;
             if (focusShots > 0) buffLine += " Focus";
             gc.fillText(buffLine, W - 360, 156);
+        }
+
+        if (stageExit.isActive()) {
+            gc.setFill(Color.color(0.15, 0.9, 0.4));
+            gc.fillText("Exit open: move right into the marker", W - 360, 178);
         }
     }
 
