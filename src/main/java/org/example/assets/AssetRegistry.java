@@ -45,6 +45,7 @@ public final class AssetRegistry {
         registerImage("enemy.janitor", "/assets/stages/enemies/janitor.png");
 
         registerImage("effect.muzzle_flash", "/assets/effects/muzzle_flash.png");
+        registerImage("weapon.smg", "/assets/effects/muzzle_flash.png");
 
         registerAudio("audio.death", "/assets/audio/death.mp3");
         registerAudio("audio.jump.boing", "/assets/audio/jump/Boing.mp3");

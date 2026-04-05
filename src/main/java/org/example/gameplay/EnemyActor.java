@@ -2,6 +2,7 @@ package org.example.gameplay;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import org.example.assets.AnimationStrip;
 import org.example.assets.SpriteSheet;
 
 public class EnemyActor extends GameObject {
@@ -13,11 +14,17 @@ public class EnemyActor extends GameObject {
     private final Color color;
     private final boolean boss;
     private double attackCooldown;
+    private double vy;
+    private boolean onGround;
+    private double jumpCooldown;
     private double slowTimer;
     private int bleedTicks;
     private int bleedTickDamage;
     private double bleedTickTimer;
     private SpriteSheet spriteSheet;
+    private AnimationStrip idleStrip;
+    private AnimationStrip walkStrip;
+    private AnimationStrip attackStrip;
     private double animationTime;
     private boolean moving;
     private boolean attacking;
@@ -66,12 +73,32 @@ public class EnemyActor extends GameObject {
         this.attackCooldown = attackCooldown;
     }
 
+    public double getVy() {
+        return vy;
+    }
+
+    public void setVy(double vy) {
+        this.vy = vy;
+    }
+
+    public boolean isOnGround() {
+        return onGround;
+    }
+
+    public void setOnGround(boolean onGround) {
+        this.onGround = onGround;
+    }
+
     public void takeDamage(int damage) {
         hp -= damage;
     }
 
-    public void setSpriteSheet(SpriteSheet spriteSheet) {
+    public void setSpriteSheet(SpriteSheet spriteSheet, AnimationStrip idleStrip,
+                               AnimationStrip walkStrip, AnimationStrip attackStrip) {
         this.spriteSheet = spriteSheet;
+        this.idleStrip = idleStrip;
+        this.walkStrip = walkStrip;
+        this.attackStrip = attackStrip;
     }
 
     public void setMoving(boolean moving) {
@@ -80,6 +107,26 @@ public class EnemyActor extends GameObject {
 
     public void setAttacking(boolean attacking) {
         this.attacking = attacking;
+    }
+
+    public void stepVertical(double dt) {
+        moveBy(0, vy * dt);
+    }
+
+    public void landOn(double surfaceY) {
+        setY(surfaceY - getHeight());
+        vy = 0;
+        onGround = true;
+    }
+
+    public boolean canJump() {
+        return onGround && jumpCooldown <= 0;
+    }
+
+    public void jump(double jumpVelocity) {
+        vy = jumpVelocity;
+        onGround = false;
+        jumpCooldown = 0.9;
     }
 
     public void applySlow(double duration) {
@@ -101,6 +148,7 @@ public class EnemyActor extends GameObject {
     public void updateStatusEffects(double dt) {
         animationTime += dt;
         slowTimer = Math.max(0, slowTimer - dt);
+        jumpCooldown = Math.max(0, jumpCooldown - dt);
 
         if (bleedTicks <= 0) {
             return;
@@ -135,12 +183,9 @@ public class EnemyActor extends GameObject {
         double pixel = boss ? 6 : 4;
 
         if (spriteSheet != null) {
-            int row = attacking && boss ? 1 : (moving ? 1 : 0);
-            int frameCount = row == 1 && boss ? Math.min(spriteSheet.columns(), 18) : Math.min(spriteSheet.columns(), boss ? 8 : 12);
-            if (frameCount <= 0) {
-                frameCount = 1;
-            }
-            int column = frameCount == 1 ? 0 : ((int) Math.floor(animationTime * (boss ? 8 : 6)) % frameCount);
+            AnimationStrip strip = resolveStrip();
+            int row = strip == null ? 0 : strip.row();
+            int column = strip == null ? 0 : strip.frameAt(animationTime);
             spriteSheet.drawFrame(gc, row, column, x - (boss ? 6 : 4), y - (boss ? 10 : 6), getWidth() + (boss ? 12 : 8), getHeight() + (boss ? 12 : 8), facing > 0);
         } else {
             gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
@@ -175,5 +220,18 @@ public class EnemyActor extends GameObject {
             gc.setFill(Color.WHITE);
             gc.fillText(name, x - 10, y - 16);
         }
+    }
+
+    private AnimationStrip resolveStrip() {
+        if (attacking && attackStrip != null) {
+            return attackStrip;
+        }
+        if (moving && walkStrip != null) {
+            return walkStrip;
+        }
+        if (idleStrip != null) {
+            return idleStrip;
+        }
+        return walkStrip != null ? walkStrip : attackStrip;
     }
 }

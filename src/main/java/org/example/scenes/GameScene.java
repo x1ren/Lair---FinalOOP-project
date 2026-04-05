@@ -10,7 +10,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import org.example.Main;
+import org.example.assets.AnimationStrip;
 import org.example.assets.AssetRegistry;
+import org.example.assets.SpriteSheet;
 import org.example.assets.SpriteSet;
 import org.example.engines.CollisionManager;
 import org.example.engines.GameLoop;
@@ -26,6 +28,7 @@ import org.example.gameplay.StageExitMarker;
 import org.example.player.CharacterType;
 import org.example.runtime.GameContext;
 import org.example.weapons.Weapon;
+import org.example.weapons.WeaponType;
 
 import java.util.List;
 import java.util.Random;
@@ -52,9 +55,10 @@ public class GameScene {
     private final EntityManager<Projectile> projectiles = new EntityManager<>();
     private final StageExitMarker stageExit = new StageExitMarker(W - 92, GROUND_Y - 84, 44, 64);
     private final List<PlatformTile> platforms = List.of(
-            new PlatformTile(170, 520, 220, 16),
-            new PlatformTile(520, 430, 240, 16),
-            new PlatformTile(900, 340, 180, 16)
+            new PlatformTile(120, 520, 220, 18),
+            new PlatformTile(410, 456, 190, 18),
+            new PlatformTile(710, 392, 190, 18),
+            new PlatformTile(972, 480, 170, 18)
     );
     private final List<StageDefinition> stages = StageCatalog.buildStoryStages();
 
@@ -298,6 +302,7 @@ public class GameScene {
             enemy.setAttacking(false);
             enemy.updateStatusEffects(dt);
             enemy.setAttackCooldown(Math.max(0, enemy.getAttackCooldown() - dt));
+            updateEnemyPhysics(enemy, dt);
             enemy.chase(player, dt, 20, W - enemy.getWidth() - 20);
 
             if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
@@ -306,6 +311,57 @@ public class GameScene {
                 enemy.setAttacking(true);
             }
         }
+    }
+
+    private void updateEnemyPhysics(EnemyActor enemy, double dt) {
+        double previousBottom = enemy.getY() + enemy.getHeight();
+        enemy.setVy(enemy.getVy() + GRAVITY * dt);
+
+        if (shouldEnemyJump(enemy)) {
+            enemy.jump(CharacterType.BASE_JUMP * 0.88);
+        }
+
+        enemy.stepVertical(dt);
+        enemy.setOnGround(false);
+
+        if (enemy.getY() + enemy.getHeight() >= GROUND_Y) {
+            enemy.landOn(GROUND_Y);
+        }
+
+        if (!enemy.isOnGround()) {
+            for (PlatformTile platform : platforms) {
+                if (enemy.getVy() >= 0 && CollisionManager.landsOnTop(enemy, platform, previousBottom)) {
+                    enemy.landOn(platform.getY());
+                    break;
+                }
+            }
+        }
+    }
+
+    private boolean shouldEnemyJump(EnemyActor enemy) {
+        if (!enemy.canJump()) {
+            return false;
+        }
+
+        double dx = player.getCenterX() - enemy.getCenterX();
+        double dy = enemy.getCenterY() - player.getCenterY();
+
+        if (dy > 46 && Math.abs(dx) < 260) {
+            return true;
+        }
+
+        for (PlatformTile platform : platforms) {
+            boolean ahead = dx > 0
+                    ? platform.getX() > enemy.getX() && platform.getX() - enemy.getX() < 120
+                    : enemy.getX() > platform.getX() && enemy.getX() - platform.getX() < 120;
+            boolean reachableHeight = platform.getY() < enemy.getY() && enemy.getY() - platform.getY() < 150;
+
+            if (ahead && reachableHeight && player.getY() + player.getHeight() <= platform.getY() + 16) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void fireWeapon() {
@@ -448,7 +504,7 @@ public class GameScene {
             EnemyActor enemy = new EnemyActor(stage.enemyName(), x, GROUND_Y - 54, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
             if (!stage.enemySpriteIds().isEmpty()) {
-                enemy.setSpriteSheet(loadEnemySheet(stage.enemySpriteIds().get(i % stage.enemySpriteIds().size())));
+                applyEnemySprite(enemy, stage.enemySpriteIds().get(i % stage.enemySpriteIds().size()));
             }
             enemies.add(enemy);
         }
@@ -460,7 +516,7 @@ public class GameScene {
         EnemyActor enemy = new EnemyActor(stage.bossName(), x, GROUND_Y - 96, 74, 96,
                 stage.bossHealth(), stage.bossHealth(), stage.bossSpeed(), stage.tint(), true);
         if (stage.bossSpriteId() != null) {
-            enemy.setSpriteSheet(loadEnemySheet(stage.bossSpriteId()));
+            applyEnemySprite(enemy, stage.bossSpriteId());
         }
         enemies.add(enemy);
     }
@@ -469,12 +525,46 @@ public class GameScene {
         return assets.image(stage.backdropAssetId());
     }
 
-    private org.example.assets.SpriteSheet loadEnemySheet(String spriteId) {
-        return switch (spriteId) {
-            case "enemy.security_guard" -> assets.sheet(spriteId, 96, 128);
-            case "enemy.vendor" -> assets.sheet(spriteId, 128, 64);
-            default -> assets.sheet(spriteId, 32, 32);
-        };
+    private void applyEnemySprite(EnemyActor enemy, String spriteId) {
+        SpriteSheet sheet;
+        AnimationStrip idle;
+        AnimationStrip walk;
+        AnimationStrip attack;
+
+        switch (spriteId) {
+            case "enemy.librarian", "enemy.janitor" -> {
+                sheet = assets.sheet(spriteId, 32, 32);
+                idle = new AnimationStrip(0, 0, 12, 5);
+                walk = new AnimationStrip(1, 0, 6, 8);
+                attack = null;
+            }
+            case "enemy.student_f", "enemy.student_m" -> {
+                sheet = assets.sheet(spriteId, 32, 32);
+                idle = new AnimationStrip(0, 0, 8, 5);
+                walk = new AnimationStrip(1, 0, 4, 8);
+                attack = null;
+            }
+            case "enemy.security_guard" -> {
+                sheet = assets.sheet(spriteId, 96, 128);
+                idle = new AnimationStrip(0, 0, 8, 5);
+                walk = new AnimationStrip(0, 0, 8, 7);
+                attack = new AnimationStrip(1, 0, 18, 10);
+            }
+            case "enemy.vendor" -> {
+                sheet = assets.sheet(spriteId, 64, 64);
+                idle = new AnimationStrip(0, 0, 12, 5);
+                walk = new AnimationStrip(1, 0, 8, 8);
+                attack = new AnimationStrip(1, 0, 8, 8);
+            }
+            default -> {
+                sheet = assets.sheet(spriteId, 32, 32);
+                idle = new AnimationStrip(0, 0, 1, 1);
+                walk = idle;
+                attack = idle;
+            }
+        }
+
+        enemy.setSpriteSheet(sheet, idle, walk, attack);
     }
 
     private void handleStageCleared(StageDefinition stage) {
@@ -526,6 +616,7 @@ public class GameScene {
         }
         stageExit.render(gc);
         player.render(gc);
+        renderPlayerWeapon();
         renderMuzzleFlash();
         projectiles.renderAll(gc);
         enemies.renderAll(gc);
@@ -550,30 +641,52 @@ public class GameScene {
 
         Image backdrop = loadBackdrop(stage);
         if (backdrop != null) {
-            gc.setImageSmoothing(false);
-            gc.drawImage(backdrop, 0, 120, W, 320);
-            gc.setFill(Color.color(0, 0, 0, 0.18));
-            gc.fillRect(0, 120, W, 320);
+            drawBackdropAsRoom(backdrop);
         } else {
             gc.setFill(Color.color(0.03, 0.08, 0.11));
             gc.fillRect(0, 0, W, H - 96);
         }
 
-        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.16));
-        gc.fillRect(0, 96, W, 380);
+        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.10));
+        gc.fillRect(0, 72, W, GROUND_Y - 72);
 
-        gc.setFill(Color.color(0.02, 0.04, 0.05));
-        for (int i = 0; i < 9; i++) {
-            double sx = 70 + i * 150;
-            gc.fillRect(sx, 0, 6, H);
-        }
+        gc.setFill(Color.color(0, 0, 0, 0.10));
+        gc.fillRect(0, 0, W, 68);
 
-        gc.setFill(Color.color(0.05, 0.10, 0.07));
+        gc.setFill(Color.color(0.01, 0.02, 0.03, 0.18));
+        gc.fillRect(0, GROUND_Y - 36, W, 36);
+
+        gc.setFill(Color.color(0.03, 0.05, 0.06, 0.55));
         gc.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-        gc.setFill(Color.color(0.10, 0.18, 0.12));
-        for (int x = 0; x < W; x += 32) {
-            gc.fillRect(x, GROUND_Y + 24, 16, 12);
+    }
+
+    private void drawBackdropAsRoom(Image backdrop) {
+        gc.setImageSmoothing(false);
+
+        double targetX = 0;
+        double targetY = 64;
+        double targetW = W;
+        double targetH = GROUND_Y - 24 - targetY;
+
+        double imageAspect = backdrop.getWidth() / backdrop.getHeight();
+        double targetAspect = targetW / targetH;
+
+        double sourceW = backdrop.getWidth();
+        double sourceH = backdrop.getHeight();
+        double sourceX = 0;
+        double sourceY = 0;
+
+        if (imageAspect > targetAspect) {
+            sourceW = sourceH * targetAspect;
+            sourceX = (backdrop.getWidth() - sourceW) / 2.0;
+        } else {
+            sourceH = sourceW / targetAspect;
+            sourceY = Math.max(0, backdrop.getHeight() - sourceH);
         }
+
+        gc.drawImage(backdrop, sourceX, sourceY, sourceW, sourceH, targetX, targetY, targetW, targetH);
+        gc.setFill(Color.color(0, 0, 0, 0.08));
+        gc.fillRect(targetX, targetY, targetW, targetH);
     }
 
     private void renderMuzzleFlash() {
@@ -599,58 +712,184 @@ public class GameScene {
         gc.restore();
     }
 
+    private void renderPlayerWeapon() {
+        if (finished && !victory) {
+            return;
+        }
+
+        double aimAngle = getAimAngle();
+        boolean aimingRight = Math.cos(aimAngle) >= 0;
+        double shoulderX = player.getCenterX() + (aimingRight ? 10 : -10);
+        double shoulderY = player.getY() + player.getHeight() * 0.38;
+
+        gc.save();
+        gc.translate(shoulderX, shoulderY);
+        gc.rotate(Math.toDegrees(aimAngle));
+
+        gc.setFill(Color.color(0, 0, 0, 0.18));
+        gc.fillRect(4, -2, 26, 6);
+
+        if (weapon.getType() == WeaponType.SMG) {
+            renderSmgWeaponSprite();
+        } else {
+            renderProceduralWeapon();
+        }
+
+        gc.restore();
+    }
+
+    private void renderSmgWeaponSprite() {
+        Image smgSheet = assets.image("weapon.smg");
+        if (smgSheet == null) {
+            renderProceduralWeapon();
+            return;
+        }
+
+        int frameWidth = 32;
+        int frameHeight = 32;
+        int column = muzzleFlashTimer > 0 ? 1 : 0;
+        int row = 1;
+
+        gc.setImageSmoothing(false);
+        gc.drawImage(smgSheet, column * frameWidth, row * frameHeight, frameWidth, frameHeight,
+                -4, -18, 44, 24);
+    }
+
+    private void renderProceduralWeapon() {
+        Color body = switch (weapon.getType()) {
+            case ASSAULT_RIFLE -> Color.color(0.34, 0.40, 0.46);
+            case SHOTGUN -> Color.color(0.56, 0.34, 0.16);
+            case SNIPER -> Color.color(0.74, 0.74, 0.78);
+            case LMG -> Color.color(0.44, 0.22, 0.22);
+            case SMG -> Color.color(0.34, 0.48, 0.26);
+        };
+
+        gc.setFill(body);
+        switch (weapon.getType()) {
+            case ASSAULT_RIFLE -> {
+                gc.fillRect(0, -5, 30, 8);
+                gc.fillRect(12, -9, 10, 4);
+                gc.fillRect(8, 3, 5, 8);
+                gc.fillRect(26, -3, 8, 3);
+            }
+            case SHOTGUN -> {
+                gc.fillRect(0, -4, 26, 7);
+                gc.fillRect(18, -2, 15, 2);
+                gc.fillRect(4, 3, 6, 11);
+            }
+            case SNIPER -> {
+                gc.fillRect(0, -4, 36, 6);
+                gc.fillRect(10, -9, 12, 3);
+                gc.fillRect(6, 2, 5, 10);
+                gc.fillRect(32, -2, 12, 2);
+            }
+            case LMG -> {
+                gc.fillRect(0, -5, 32, 8);
+                gc.fillRect(10, -9, 12, 4);
+                gc.fillRect(6, 3, 6, 10);
+                gc.fillRect(14, 5, 12, 3);
+                gc.fillRect(28, -3, 10, 3);
+            }
+            case SMG -> {
+                gc.fillRect(0, -4, 24, 7);
+                gc.fillRect(6, 3, 4, 8);
+                gc.fillRect(20, -2, 8, 2);
+            }
+        }
+
+        gc.setFill(Color.color(0.92, 0.96, 1.0, 0.22));
+        gc.fillRect(2, -3, 8, 2);
+    }
+
+    private double getAimAngle() {
+        double originX = player.getCenterX();
+        double originY = player.getY() + player.getHeight() * 0.35;
+        double targetX = input.getMouseX();
+        double targetY = input.getMouseY();
+
+        if (targetX == 0 && targetY == 0) {
+            return player.getFacing() >= 0 ? 0 : Math.PI;
+        }
+
+        return Math.atan2(targetY - originY, targetX - originX);
+    }
+
     private void renderHud(StageDefinition stage) {
-        double panelY = 18;
-        double panelH = 160;
+        double panelY = 16;
+        double panelH = 196;
+        double leftX = 20;
+        double leftW = 700;
+        double rightW = 520;
+        double rightX = W - rightW - 20;
 
-        drawPixelPanel(20, panelY, 460, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
+        drawPixelPanel(leftX, panelY, leftW, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
                 Color.color(0.10, 0.76, 0.42));
-        drawPixelPanel(W - 400, panelY, 380, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
+        drawPixelPanel(rightX, panelY, rightW, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
                 Color.color(0.10, 0.76, 0.42));
 
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
+        drawPixelPanel(leftX + 410, panelY + 24, 268, 136, Color.color(0.03, 0.05, 0.07, 0.92),
+                Color.color(0.14, 0.22, 0.18, 0.92));
+        drawPixelPanel(rightX + 24, panelY + 24, rightW - 48, 88, Color.color(0.03, 0.05, 0.07, 0.92),
+                Color.color(0.14, 0.22, 0.18, 0.92));
+        drawPixelPanel(rightX + 24, panelY + 122, rightW - 48, 48, Color.color(0.03, 0.05, 0.07, 0.92),
+                Color.color(0.14, 0.22, 0.18, 0.92));
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 22));
         gc.setFill(Color.WHITE);
-        gc.fillText(character.getName(), 34, 46);
+        gc.fillText(character.getName(), leftX + 18, panelY + 34);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText(character.getTitle() + " | " + weapon.getName(), 34, 68);
-        gc.fillText("CHAPTER: " + stage.name().toUpperCase(), 34, 88);
-        gc.fillText("OBJECTIVE: " + stage.objective().toUpperCase(), 34, 108);
-        gc.fillText("SKILL: " + character.getSkillName().toUpperCase(), 34, 128);
-        gc.fillText(stage.moodText().toUpperCase(), 34, 148);
+        gc.fillText(character.getTitle() + " | " + weapon.getName(), leftX + 18, panelY + 58);
+        gc.fillText("CHAPTER", leftX + 18, panelY + 86);
+        gc.setFill(Color.WHITE);
+        gc.fillText(stage.name().toUpperCase(), leftX + 110, panelY + 86);
 
-        drawBar(250, 132, 190, 12, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
-        drawBar(250, 152, 190, 12, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
+        gc.setFill(Color.color(0.74, 0.86, 0.80));
+        gc.fillText("OBJECTIVE", leftX + 18, panelY + 110);
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        wrapText(stage.objective().toUpperCase(), leftX + 18, panelY + 128, 360, 16);
+
+        gc.setFill(Color.color(0.74, 0.86, 0.80));
+        gc.fillText("STAGE FEEL", leftX + 18, panelY + 160);
+        gc.setFill(Color.color(0.82, 0.88, 0.86));
+        gc.setFont(Font.font("Monospaced", 11));
+        wrapText(stage.moodText().toUpperCase(), leftX + 18, panelY + 176, 360, 15);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+        gc.setFill(Color.color(0.74, 0.86, 0.80));
+        gc.fillText("VITALS", leftX + 430, panelY + 44);
+        gc.setFill(Color.WHITE);
+        gc.fillText("HP " + hp + "/" + maxHp, leftX + 430, panelY + 66);
+        drawBar(leftX + 430, panelY + 74, 220, 14, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
+        gc.fillText("SKILL " + getAbilityStatusText(), leftX + 430, panelY + 104);
+        drawBar(leftX + 430, panelY + 112, 220, 14, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
+        gc.fillText("WEAPON " + weapon.getName().toUpperCase(), leftX + 430, panelY + 144);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
+        gc.setFill(Color.color(0.74, 0.86, 0.80));
+        gc.fillText("COMBAT READOUT", rightX + 42, panelY + 44);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.WHITE);
-        gc.fillText("HP " + hp + "/" + maxHp, 250, 126);
-        gc.fillText(getAbilityStatusText(), 250, 146);
+        gc.fillText("Damage  " + getCurrentShotDamage(), rightX + 42, panelY + 70);
+        gc.fillText("Move    " + character.getMovementSpeed() + "  (" + (int) character.getMovementSpeedPx() + " px/s)", rightX + 42, panelY + 92);
+        gc.fillText("Ammo    " + ammo + "/" + weapon.getMagazineSize(), rightX + 270, panelY + 70);
+        gc.fillText("Reload  " + getReloadStatusText(), rightX + 270, panelY + 92);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-        gc.setFill(Color.WHITE);
-        gc.fillText("Damage " + getCurrentShotDamage(), W - 360, 48);
-        gc.fillText("Move " + character.getMovementSpeed() + " (" + (int) character.getMovementSpeedPx() + " px/s)", W - 360, 70);
-        gc.fillText("Ammo " + ammo + "/" + weapon.getMagazineSize(), W - 360, 92);
-        gc.fillText(reloadTimer > 0 ? "Reload " + String.format("%.1fs", reloadTimer) : "Reload ready", W - 360, 114);
-        gc.fillText("Controls: A/D or Arrows  |  SPACE  |  Mouse  |  Q  |  R", W - 360, 136);
+        gc.setFill(Color.color(0.15, 0.9, 0.4));
+        gc.fillText(getBuffStatusText(), rightX + 42, panelY + 152);
 
-        if (hemorrhageTimer > 0 || suppressTimer > 0 || overdriveTimer > 0
-                || overloadShots > 0 || focusShots > 0) {
-            gc.setFill(Color.color(0.15, 0.9, 0.4));
-            String buffLine = "Buffs:";
-            if (hemorrhageTimer > 0) buffLine += " Hemorrhage";
-            if (suppressTimer > 0) buffLine += " Suppress";
-            if (overdriveTimer > 0) buffLine += " Overdrive";
-            if (overloadShots > 0) buffLine += " Overload x" + overloadShots;
-            if (focusShots > 0) buffLine += " Focus";
-            gc.fillText(buffLine, W - 360, 158);
-        }
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        gc.setFill(Color.color(0.82, 0.88, 0.86));
+        gc.fillText("MOVE A/D OR ARROWS   JUMP SPACE   FIRE MOUSE", rightX + 42, panelY + 190);
+        gc.fillText("SKILL Q   RELOAD R   EXIT MARKER TO ADVANCE", rightX + 42, panelY + 206);
 
         if (stageExit.isActive()) {
             gc.setFill(Color.color(0.15, 0.9, 0.4));
-            gc.fillText("Exit open: move right into the marker", W - 360, 178);
+            gc.fillText("EXIT OPEN", rightX + rightW - 132, panelY + 190);
         }
     }
 
@@ -785,6 +1024,25 @@ public class GameScene {
             return "Skill READY";
         }
         return "Skill " + String.format("%.1fs", abilityCooldown);
+    }
+
+    private String getReloadStatusText() {
+        return reloadTimer > 0 ? String.format("%.1fs", reloadTimer) : "READY";
+    }
+
+    private String getBuffStatusText() {
+        if (hemorrhageTimer <= 0 && suppressTimer <= 0 && overdriveTimer <= 0
+                && overloadShots <= 0 && focusShots <= 0) {
+            return "BUFFS  NONE";
+        }
+
+        StringBuilder line = new StringBuilder("BUFFS ");
+        if (hemorrhageTimer > 0) line.append("HEMORRHAGE ");
+        if (suppressTimer > 0) line.append("SUPPRESS ");
+        if (overdriveTimer > 0) line.append("OVERDRIVE ");
+        if (overloadShots > 0) line.append("OVERLOAD x").append(overloadShots).append(" ");
+        if (focusShots > 0) line.append("FOCUS ");
+        return line.toString().trim();
     }
 
     private void setStatus(String message) {
