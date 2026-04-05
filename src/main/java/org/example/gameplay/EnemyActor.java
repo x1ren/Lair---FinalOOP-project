@@ -2,6 +2,7 @@ package org.example.gameplay;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import org.example.assets.SpriteSheet;
 
 public class EnemyActor extends GameObject {
 
@@ -16,6 +17,11 @@ public class EnemyActor extends GameObject {
     private int bleedTicks;
     private int bleedTickDamage;
     private double bleedTickTimer;
+    private SpriteSheet spriteSheet;
+    private double animationTime;
+    private boolean moving;
+    private boolean attacking;
+    private int facing = -1;
 
     public EnemyActor(String name, double x, double y, double width, double height,
                       int hp, int maxHp, double speed, Color color, boolean boss) {
@@ -64,6 +70,18 @@ public class EnemyActor extends GameObject {
         hp -= damage;
     }
 
+    public void setSpriteSheet(SpriteSheet spriteSheet) {
+        this.spriteSheet = spriteSheet;
+    }
+
+    public void setMoving(boolean moving) {
+        this.moving = moving;
+    }
+
+    public void setAttacking(boolean attacking) {
+        this.attacking = attacking;
+    }
+
     public void applySlow(double duration) {
         slowTimer = Math.max(slowTimer, duration);
     }
@@ -81,6 +99,7 @@ public class EnemyActor extends GameObject {
     }
 
     public void updateStatusEffects(double dt) {
+        animationTime += dt;
         slowTimer = Math.max(0, slowTimer - dt);
 
         if (bleedTicks <= 0) {
@@ -101,6 +120,10 @@ public class EnemyActor extends GameObject {
     public void chase(PlayerActor player, double dt, double minX, double maxX) {
         double direction = Math.signum(player.getCenterX() - getCenterX());
         double effectiveSpeed = slowTimer > 0 ? speed * 0.55 : speed;
+        moving = Math.abs(direction) > 0;
+        if (direction != 0) {
+            facing = direction < 0 ? -1 : 1;
+        }
         moveBy(direction * effectiveSpeed * dt, 0);
         setX(Math.max(minX, Math.min(maxX, getX())));
     }
@@ -111,16 +134,26 @@ public class EnemyActor extends GameObject {
         double y = Math.round(getY());
         double pixel = boss ? 6 : 4;
 
-        gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
-        gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
+        if (spriteSheet != null) {
+            int row = attacking && boss ? 1 : (moving ? 1 : 0);
+            int frameCount = row == 1 && boss ? Math.min(spriteSheet.columns(), 18) : Math.min(spriteSheet.columns(), boss ? 8 : 12);
+            if (frameCount <= 0) {
+                frameCount = 1;
+            }
+            int column = frameCount == 1 ? 0 : ((int) Math.floor(animationTime * (boss ? 8 : 6)) % frameCount);
+            spriteSheet.drawFrame(gc, row, column, x - (boss ? 6 : 4), y - (boss ? 10 : 6), getWidth() + (boss ? 12 : 8), getHeight() + (boss ? 12 : 8), facing > 0);
+        } else {
+            gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
+            gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
 
-        gc.setFill(color);
-        gc.fillRect(x + pixel, y, getWidth() - pixel * 2, pixel * 3);
-        gc.fillRect(x, y + pixel * 3, getWidth(), getHeight() - pixel * 3);
+            gc.setFill(color);
+            gc.fillRect(x + pixel, y, getWidth() - pixel * 2, pixel * 3);
+            gc.fillRect(x, y + pixel * 3, getWidth(), getHeight() - pixel * 3);
 
-        gc.setFill(Color.color(0.08, 0.08, 0.10));
-        gc.fillRect(x + pixel * 2, y + pixel * 4, pixel * 2, pixel * 2);
-        gc.fillRect(x + getWidth() - pixel * 4, y + pixel * 4, pixel * 2, pixel * 2);
+            gc.setFill(Color.color(0.08, 0.08, 0.10));
+            gc.fillRect(x + pixel * 2, y + pixel * 4, pixel * 2, pixel * 2);
+            gc.fillRect(x + getWidth() - pixel * 4, y + pixel * 4, pixel * 2, pixel * 2);
+        }
 
         gc.setFill(Color.color(0.1, 0.1, 0.12, 0.95));
         gc.fillRect(x, y - pixel * 2, getWidth(), pixel);

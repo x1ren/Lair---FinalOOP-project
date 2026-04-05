@@ -27,7 +27,8 @@ public abstract class GameLoop extends AnimationTimer {
             return;
         }
 
-        double deltaTime = (now - lastTime) / 1_000_000_000.0;
+        long frameNanos = now - lastTime;
+        double deltaTime = frameNanos / 1_000_000_000.0;
         lastTime = now;
 
         // Cap delta to avoid huge jumps if window loses focus
@@ -35,7 +36,7 @@ public abstract class GameLoop extends AnimationTimer {
 
         // FPS counter
         frameCount++;
-        fpsTimer += (now - lastTime + (long)(deltaTime * 1_000_000_000));
+        fpsTimer += frameNanos;
         if (fpsTimer >= 1_000_000_000L) {
             currentFPS = frameCount;
             frameCount = 0;

@@ -3,11 +3,13 @@ package org.example.scenes;
 import org.example.Main;
 import javafx.animation.*;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.canvas.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.*;
 import javafx.scene.text.*;
 import javafx.util.Duration;
+import org.example.runtime.GameContext;
 
 import java.util.List;
 
@@ -74,6 +76,7 @@ public class IntroScene {
     private String   displayText  = "";
     private int      charCount    = 0;
     private Timeline typewriter;
+    private AnimationTimer typewriterTimer;
 
     // ── Background pulse (for horror segments) ────────────────
     private double bgPulse = 0;
@@ -132,6 +135,7 @@ public class IntroScene {
         charCount = 0;
 
         if (typewriter != null) typewriter.stop();
+        if (typewriterTimer != null) typewriterTimer.stop();
 
         // Typewriter effect
         int totalChars = displayText.length();
@@ -143,7 +147,7 @@ public class IntroScene {
         typewriter.setCycleCount(1);
 
         // Animate char count
-        AnimationTimer typer = new AnimationTimer() {
+        typewriterTimer = new AnimationTimer() {
             long start = 0;
             @Override public void handle(long now) {
                 if (start == 0) start = now;
@@ -153,7 +157,7 @@ public class IntroScene {
                 if (charCount >= totalChars) stop();
             }
         };
-        typer.start();
+        typewriterTimer.start();
 
         redraw();
     }
@@ -192,6 +196,19 @@ public class IntroScene {
         String prompt = "[ Click or press SPACE to begin ]";
         double pw = computeTextWidth(prompt, 13);
         gc.fillText(prompt, W / 2.0 - pw / 2, H - 50);
+
+        Image preview = GameContext.assets().image("character.preview");
+        if (preview != null) {
+            gc.setImageSmoothing(false);
+            gc.drawImage(preview, W / 2.0 - 24, H / 2.0 + 66, 48, 48);
+        }
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+        gc.setFill(GameContext.assets().isPreloadComplete()
+                ? Color.color(0.18, 0.9, 0.42)
+                : Color.color(0.88, 0.82, 0.20));
+        String preload = GameContext.assets().isPreloadComplete() ? "ASSET SYNC COMPLETE" : "SYNCING SPRITES + AUDIO";
+        gc.fillText(preload, W / 2.0 - computeTextWidth(preload, 12) / 2, H - 82);
     }
 
     private void redraw() {
@@ -258,39 +275,134 @@ public class IntroScene {
     }
 
     private void renderSceneIllustration(String phase, String speaker) {
-        double groundY = H * 0.62;
+        double frameX = 84;
+        double frameY = 92;
+        double frameW = W - 168;
+        double frameH = 332;
+        double groundY = frameY + frameH - 74;
+        Color accent = getPhaseAccent(phase);
 
-        gc.setFill(Color.color(0.05, 0.10, 0.07));
-        gc.fillRect(0, groundY, W, H - groundY);
-        gc.setFill(Color.color(0.08, 0.08, 0.12));
-        gc.fillRect(W * 0.1, groundY - 200, W * 0.8, 200);
+        drawPixelPanel(frameX, frameY, frameW, frameH, Color.color(0.02, 0.05, 0.07, 0.96), accent);
+        gc.setFill(Color.color(0.03, 0.08, 0.10, 0.95));
+        gc.fillRect(snap(frameX + 12), snap(frameY + 12), frameW - 24, 28);
 
-        Color windowColor = (phase.equals("horror") || phase.equals("awaken"))
-                ? Color.color(0.8, 0.1, 0.05, 0.6 + bgPulse * 0.3)
-                : Color.color(0.9, 0.85, 0.5, 0.3);
-        gc.setFill(windowColor);
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 8; col++) {
-                gc.fillRect(W * 0.15 + col * 80, groundY - 180 + row * 55, 40, 28);
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+        gc.setFill(Color.color(0.76, 0.86, 0.82));
+        String phaseLabel = getPhaseLabel(phase);
+        gc.fillText(phaseLabel, frameX + 24, frameY + 31);
+
+        String locationLabel = getLocationLabel(phase);
+        gc.setFill(Color.color(accent.getRed(), accent.getGreen(), accent.getBlue(), 0.95));
+        gc.fillText(locationLabel, frameX + frameW - computeTextWidth(locationLabel, 12) - 24, frameY + 31);
+
+        gc.setFill(Color.color(0.05, 0.12, 0.14));
+        gc.fillRect(snap(frameX + 16), snap(frameY + 52), frameW - 32, frameH - 68);
+        gc.setFill(Color.color(0.03, 0.08, 0.09));
+        gc.fillRect(snap(frameX + 16), snap(groundY), frameW - 32, frameY + frameH - groundY - 16);
+
+        renderEnvironmentBlocks(frameX + 16, frameY + 52, frameW - 32, groundY - (frameY + 52), phase);
+        renderSceneActors(phase, speaker, groundY, frameX + 16, frameW - 32);
+
+        gc.setFill(Color.color(accent.getRed(), accent.getGreen(), accent.getBlue(), 0.18));
+        gc.fillRect(snap(frameX + 20), snap(frameY + frameH - 28), 120, 10);
+        gc.setFill(Color.color(0.76, 0.86, 0.82));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 10));
+        gc.fillText("SCENE FRAME ACTIVE", frameX + 24, frameY + frameH - 18);
+    }
+
+    private void renderEnvironmentBlocks(double x, double y, double width, double height, String phase) {
+        if (phase.equals("calm") || phase.equals("shock")) {
+            gc.setFill(Color.color(0.08, 0.09, 0.13));
+            gc.fillRect(snap(x + 64), snap(y + 28), width - 128, height - 50);
+
+            Color windowColor = phase.equals("shock")
+                    ? Color.color(1.0, 0.52, 0.12, 0.55 + bgPulse * 0.2)
+                    : Color.color(0.82, 0.78, 0.44, 0.26);
+            gc.setFill(windowColor);
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 7; col++) {
+                    gc.fillRect(snap(x + 100 + col * 96), snap(y + 48 + row * 56), 44, 28);
+                }
             }
+
+            gc.setFill(Color.color(0.12, 0.16, 0.20));
+            gc.fillRect(snap(x + 90), snap(y + height - 62), width - 180, 14);
         }
 
-        if (phase.equals("calm") || phase.equals("shock") || phase.equals("caesar")) {
-            gc.setFill(Color.color(0.05, 0.05, 0.08));
-            double[] positions = {W*0.3, W*0.38, W*0.46, W*0.54, W*0.62, W*0.70};
-            for (int i = 0; i < 6; i++) {
-                drawSilhouette(gc, positions[i], groundY - 2, 14, 44);
+        if (phase.equals("event") || phase.equals("caesar") || phase.equals("horror")) {
+            gc.setFill(Color.color(0.04, 0.08, 0.06));
+            gc.fillRect(snap(x + 40), snap(y + 34), width - 80, height - 38);
+            gc.setFill(Color.color(0.09, 0.15, 0.11));
+            gc.fillRect(snap(x + width * 0.14), snap(y + height - 82), width * 0.72, 12);
+
+            gc.setFill(Color.color(0.74, 0.56, 0.16, phase.equals("event") ? 0.85 : 0.35));
+            gc.fillRect(snap(x + width * 0.58), snap(y + 40), 32, 32);
+            gc.fillRect(snap(x + width * 0.58 + 12), snap(y + 28), 8, 8);
+
+            if (!phase.equals("event")) {
+                gc.setFill(Color.color(0.12, 0.95, 0.38, 0.10 + bgPulse * 0.14));
+                gc.fillRect(snap(x + width * 0.48), snap(y + 74), 168, 104);
             }
         }
 
         if (phase.equals("awaken") || phase.equals("khai")) {
-            gc.setFill(Color.color(0.2, 0.8, 0.4, 0.5));
-            drawSilhouette(gc, W * 0.5, groundY - 2, 16, 52);
+            gc.setFill(Color.color(0.08, 0.04, 0.09));
+            gc.fillRect(snap(x + 44), snap(y + 22), width - 88, height - 22);
+            gc.setFill(Color.color(0.40, 0.05, 0.08, 0.34 + bgPulse * 0.1));
+            for (int row = 0; row < 5; row++) {
+                gc.fillRect(snap(x + 72 + row * 140), snap(y + 30 + row * 12), 12, height - 80 - row * 10);
+            }
+            gc.setFill(Color.color(0.76, 0.10, 0.10, 0.5 + bgPulse * 0.24));
+            for (int row = 0; row < 3; row++) {
+                for (int col = 0; col < 7; col++) {
+                    gc.fillRect(snap(x + 90 + col * 94), snap(y + 40 + row * 52), 34, 24);
+                }
+            }
+        }
+    }
+
+    private void renderSceneActors(String phase, String speaker, double groundY, double x, double width) {
+        if (phase.equals("calm") || phase.equals("shock") || phase.equals("caesar")) {
+            gc.setFill(Color.color(0.06, 0.08, 0.10));
+            double[] positions = {x + width * 0.26, x + width * 0.34, x + width * 0.42, x + width * 0.50, x + width * 0.58, x + width * 0.66};
+            for (double position : positions) {
+                drawSilhouette(gc, position, groundY - 2, 14, 44);
+            }
         }
 
-        if (phase.equals("horror") || phase.equals("caesar")) {
-            gc.setFill(Color.color(0.15, 0.9, 0.3, 0.08 + bgPulse * 0.06));
-            gc.fillRect(snap(W * 0.6), snap(groundY - 60), 140, 80);
+        if (phase.equals("event")) {
+            gc.setFill(Color.color(0.06, 0.08, 0.10));
+            double[] positions = {x + width * 0.32, x + width * 0.40, x + width * 0.48, x + width * 0.56, x + width * 0.64};
+            for (double position : positions) {
+                drawSilhouette(gc, position, groundY - 2, 14, 44);
+            }
+            gc.setFill(Color.color(0.78, 0.74, 0.76));
+            drawSilhouette(gc, x + width * 0.74, groundY - 2, 14, 44);
+        }
+
+        if (phase.equals("horror")) {
+            gc.setFill(Color.color(0.10, 0.92, 0.34, 0.8));
+            drawSilhouette(gc, x + width * 0.68, groundY - 2, 18, 52);
+            gc.setFill(Color.color(0.08, 0.08, 0.10, 0.8));
+            drawSilhouette(gc, x + width * 0.34, groundY + 8, 14, 34);
+            drawSilhouette(gc, x + width * 0.44, groundY + 10, 14, 32);
+            drawSilhouette(gc, x + width * 0.54, groundY + 9, 14, 34);
+        }
+
+        if (phase.equals("awaken") || phase.equals("khai")) {
+            gc.setFill(Color.color(0.8, 0.84, 0.88));
+            drawSilhouette(gc, x + width * 0.42, groundY - 2, 16, 50);
+            gc.setFill(Color.color(0.14, 0.9, 0.4, 0.62));
+            drawSilhouette(gc, x + width * 0.60, groundY - 2, 16, 56);
+        }
+
+        if (!speaker.equals("—")) {
+            double tagX = x + width - 170;
+            double tagY = groundY - 158;
+            drawPixelPanel(tagX, tagY, 138, 38, Color.color(0.03, 0.06, 0.05, 0.92), getPhaseAccent(phase));
+            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+            gc.setFill(Color.WHITE);
+            gc.fillText(speaker, tagX + 14, tagY + 24);
         }
     }
 
@@ -306,68 +418,105 @@ public class IntroScene {
     }
 
     private void renderDialogueBox(DialogueLine line, String phase) {
-        double boxH   = 160;
-        double boxY   = H - boxH - 20;
-        double boxX   = 40;
-        double boxW   = W - 80;
+        double boxH   = 172;
+        double boxY   = H - boxH - 24;
+        double boxX   = 84;
+        double boxW   = W - 168;
+        double metaW  = 172;
+        Color accent = getPhaseAccent(phase);
 
-        Color borderColor = switch (phase) {
-            case "horror"  -> Color.color(0.9, 0.1, 0.1, 0.8);
-            case "awaken"  -> Color.color(0.6, 0.2, 0.9, 0.8);
-            case "khai"    -> Color.color(0.15, 0.9, 0.4, 0.9);
-            case "caesar"  -> Color.color(0.9, 0.7, 0.1, 0.8);
-            case "event"   -> Color.color(0.4, 0.4, 0.5, 0.6);
-            default        -> Color.color(0.3, 0.4, 0.6, 0.7);
-        };
-        drawPixelPanel(boxX, boxY, boxW, boxH, Color.color(0.04, 0.04, 0.07, 0.94), borderColor);
+        drawPixelPanel(boxX, boxY, boxW, boxH, Color.color(0.03, 0.04, 0.06, 0.97), accent);
+        drawPixelPanel(boxX + 14, boxY + 14, metaW, boxH - 28, Color.color(0.04, 0.07, 0.08, 0.95), Color.color(0.14, 0.18, 0.20));
+        drawPixelPanel(boxX + metaW + 24, boxY + 14, boxW - metaW - 38, boxH - 28, Color.color(0.04, 0.05, 0.08, 0.95), Color.color(0.14, 0.18, 0.20));
 
-        if (!line.speaker().equals("—")) {
-            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 16));
-            gc.setFill(borderColor);
-            gc.fillText(line.speaker(), boxX + 20, boxY + 26);
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        gc.setFill(accent);
+        gc.fillText("TRANSMISSION", boxX + 30, boxY + 38);
 
-            double nameW = computeTextWidth(line.speaker(), 15);
-            gc.setFill(Color.color(borderColor.getRed(), borderColor.getGreen(), borderColor.getBlue(), 0.4));
-            gc.fillRect(boxX + 20, boxY + 30, nameW, 2);
-        }
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 16));
+        gc.setFill(line.speaker().equals("—") ? Color.color(0.78, 0.80, 0.84) : Color.WHITE);
+        gc.fillText(line.speaker().equals("—") ? "SYSTEM LOG" : line.speaker(), boxX + 30, boxY + 68);
 
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        gc.setFill(Color.color(0.58, 0.68, 0.70));
+        gc.fillText(getPhaseLabel(phase), boxX + 30, boxY + 96);
+        gc.fillText(getLocationLabel(phase), boxX + 30, boxY + 118);
+        gc.fillText(String.format("ENTRY %02d / %02d", lineIndex + 1, lines.size()), boxX + 30, boxY + 140);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 16));
         gc.setFill(line.speaker().equals("—")
-                ? Color.color(0.6, 0.6, 0.65)
+                ? Color.color(0.74, 0.76, 0.80)
                 : Color.WHITE);
 
         String partial = displayText.substring(0, Math.min(charCount, displayText.length()));
-        double textY   = line.speaker().equals("—") ? boxY + 50 : boxY + 58;
-        wrapText(gc, partial, boxX + 22, textY, boxW - 44, 26);
+        double textX = boxX + metaW + 40;
+        double textY = boxY + 44;
+        wrapText(gc, partial, textX, textY, boxW - metaW - 70, 28);
 
         if (charCount >= displayText.length()) {
             double t = System.currentTimeMillis() / 600.0;
-            gc.setFill(Color.color(0.5, 0.5, 0.5, 0.5 + 0.5 * Math.sin(t)));
+            gc.setFill(Color.color(accent.getRed(), accent.getGreen(), accent.getBlue(), 0.45 + 0.45 * Math.sin(t)));
             gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-            gc.fillText("> CLICK OR SPACE", boxX + boxW - 190, boxY + boxH - 16);
+            gc.fillText("> CLICK OR SPACE TO CONTINUE", boxX + boxW - 286, boxY + boxH - 18);
         }
     }
 
     private void renderProgress() {
         int total = lines.size();
-        double dotSpacing = 10;
-        double totalW = total * dotSpacing;
-        double startX = W / 2.0 - totalW / 2;
-        double dotY = H - 10;
+        double trackW = W - 168;
+        double startX = 84;
+        double dotY = 74;
+        double segmentW = trackW / total;
 
         for (int i = 0; i < total; i++) {
             boolean active = i <= lineIndex;
             gc.setFill(active
-                    ? Color.color(0.15, 0.9, 0.4, 0.8)
-                    : Color.color(0.3, 0.3, 0.3, 0.5));
-            gc.fillRect(startX + i * dotSpacing, dotY - 4, 5, 5);
+                    ? Color.color(0.15, 0.9, 0.4, 0.85)
+                    : Color.color(0.16, 0.18, 0.20, 0.7));
+            gc.fillRect(snap(startX + i * segmentW), dotY, Math.max(8, snap(segmentW - 6)), 8);
         }
+    }
+
+    private Color getPhaseAccent(String phase) {
+        return switch (phase) {
+            case "horror" -> Color.color(0.92, 0.18, 0.16, 0.92);
+            case "awaken" -> Color.color(0.62, 0.34, 0.90, 0.88);
+            case "khai" -> Color.color(0.15, 0.9, 0.4, 0.92);
+            case "caesar" -> Color.color(0.92, 0.70, 0.16, 0.88);
+            case "event" -> Color.color(0.52, 0.62, 0.72, 0.75);
+            case "shock" -> Color.color(0.22, 0.72, 0.92, 0.80);
+            default -> Color.color(0.26, 0.58, 0.76, 0.78);
+        };
+    }
+
+    private String getPhaseLabel(String phase) {
+        return switch (phase) {
+            case "calm" -> "PRE-INCIDENT";
+            case "shock" -> "IMPACT WITNESS";
+            case "event" -> "FIELD APPROACH";
+            case "caesar" -> "FLASH CONTACT";
+            case "horror" -> "INFECTION EVENT";
+            case "awaken" -> "POST-EXPOSURE";
+            case "khai" -> "LAIR BRIEFING";
+            default -> "NARRATIVE";
+        };
+    }
+
+    private String getLocationLabel(String phase) {
+        return switch (phase) {
+            case "calm", "shock" -> "CLASSROOM BLOCK";
+            case "event", "caesar", "horror" -> "SCHOOL GROUNDS";
+            case "awaken", "khai" -> "INFECTED HALLWAY";
+            default -> "CAMPUS";
+        };
     }
 
     // ── Transition ────────────────────────────────────────────
 
     private void transitionToCharSelect() {
         finished = true;
+        if (typewriter != null) typewriter.stop();
+        if (typewriterTimer != null) typewriterTimer.stop();
         if (pulseTimer != null) pulseTimer.stop();
 
         // Fade to black then switch
@@ -379,8 +528,7 @@ public class IntroScene {
                 })
         );
         fade.setOnFinished(e -> {
-            CharacterSelectScene charSelect = new CharacterSelectScene();
-            Main.setScene(charSelect.getScene());
+            GameContext.showCharacterSelect();
         });
         fade.play();
     }

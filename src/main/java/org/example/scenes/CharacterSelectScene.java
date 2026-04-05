@@ -1,82 +1,78 @@
 package org.example.scenes;
 
-import org.example.Main;
-import org.example.player.CharacterType;
 import javafx.animation.AnimationTimer;
 import javafx.scene.Scene;
-import javafx.scene.canvas.*;
-import javafx.scene.layout.*;
-import javafx.scene.paint.*;
-import javafx.scene.text.*;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import org.example.Main;
+import org.example.assets.SpriteSheet;
+import org.example.player.CharacterType;
+import org.example.runtime.GameContext;
 
-/**
- * Character Selection Screen for THE LAIR.
- *
- * Design: dark infected campus aesthetic.
- * Green glowing toxic gas vibe from the LAIR virus.
- */
 public class CharacterSelectScene {
 
     private static final int W = Main.WIDTH;
     private static final int H = Main.HEIGHT;
     private static final double PIXEL = 4;
 
+    private static final int CARD_COUNT = 5;
+    private static final double CARD_W = 180;
+    private static final double CARD_H = 296;
+    private static final double CARD_GAP = 16;
+    private static final double CARDS_START_X =
+            (W - (CARD_COUNT * CARD_W + (CARD_COUNT - 1) * CARD_GAP)) / 2.0;
+    private static final double CARDS_Y = 164;
+
+    private static final double BTN_W = 300;
+    private static final double BTN_H = 56;
+    private static final double BTN_X = W / 2.0 - BTN_W / 2;
+    private static final double BTN_Y = 642;
+
     private final Scene scene;
     private final Canvas canvas = new Canvas(W, H);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
+    private final AnimationTimer loop;
 
     private CharacterType selected = CharacterType.JOSEPH_JIMENEZ;
     private int hoveredIndex = -1;
-
-    // Card layout
-    private static final int   CARD_COUNT  = 5;
-    private static final double CARD_W     = 180;
-    private static final double CARD_H     = 296;
-    private static final double CARD_GAP   = 16;
-    private static final double CARDS_START_X =
-            (W - (CARD_COUNT * CARD_W + (CARD_COUNT - 1) * CARD_GAP)) / 2.0;
-    private static final double CARDS_Y    = 164;
-
-    // Confirm button bounds
-    private static final double BTN_W   = 300;
-    private static final double BTN_H   = 56;
-    private static final double BTN_X   = W / 2.0 - BTN_W / 2;
-    private static final double BTN_Y   = 642;
-
-    private double bgPulse = 0;
+    private double elapsed;
+    private double bgPulse;
 
     public CharacterSelectScene() {
         Pane root = new Pane(canvas);
         scene = new Scene(root, W, H);
         scene.setCursor(javafx.scene.Cursor.DEFAULT);
 
-        scene.setOnMouseMoved(e -> {
-            hoveredIndex = getCardAt(e.getX(), e.getY());
-        });
-
+        scene.setOnMouseMoved(e -> hoveredIndex = getCardAt(e.getX(), e.getY()));
         scene.setOnMouseClicked(e -> {
             int idx = getCardAt(e.getX(), e.getY());
             if (idx >= 0) {
                 selected = CharacterType.values()[idx];
             }
-
-            // Confirm button
-            if (e.getX() >= BTN_X && e.getX() <= BTN_X + BTN_W
-                    && e.getY() >= BTN_Y && e.getY() <= BTN_Y + BTN_H) {
+            if (isInside(e.getX(), e.getY(), BTN_X, BTN_Y, BTN_W, BTN_H)) {
                 proceedToGame();
             }
         });
 
-        startLoop();
-    }
+        loop = new AnimationTimer() {
+            private long lastTime;
 
-    private void startLoop() {
-        AnimationTimer loop = new AnimationTimer() {
-            long start = 0;
-            @Override public void handle(long now) {
-                if (start == 0) start = now;
-                double t = (now - start) / 1_000_000_000.0;
-                bgPulse = (Math.sin(t * 1.8) + 1) / 2.0;
+            @Override
+            public void handle(long now) {
+                if (lastTime == 0) {
+                    lastTime = now;
+                    render();
+                    return;
+                }
+                double dt = (now - lastTime) / 1_000_000_000.0;
+                lastTime = now;
+                elapsed += dt;
+                bgPulse = (Math.sin(elapsed * 1.8) + 1) / 2.0;
                 render();
             }
         };
@@ -88,7 +84,19 @@ public class CharacterSelectScene {
         gc.fillRect(0, 0, W, H);
         renderGrid();
         renderVeins();
+        renderHeader();
 
+        CharacterType[] chars = CharacterType.values();
+        for (int i = 0; i < chars.length; i++) {
+            double cx = CARDS_START_X + i * (CARD_W + CARD_GAP);
+            renderCard(chars[i], cx, CARDS_Y, chars[i] == selected, i == hoveredIndex);
+        }
+
+        renderLorePanel();
+        renderConfirmButton();
+    }
+
+    private void renderHeader() {
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
         gc.setFill(Color.color(0.15, 0.9, 0.4, 0.7));
         String sub = "THE LAIR";
@@ -104,53 +112,46 @@ public class CharacterSelectScene {
         String hint = "Choose the survivor and enter with their fixed weapon loadout.";
         gc.fillText(hint.toUpperCase(), W / 2.0 - computeW(hint, 12) / 2, 124);
 
-        // ── Cards ─────────────────────────────────────────────
-        CharacterType[] chars = CharacterType.values();
-        for (int i = 0; i < chars.length; i++) {
-            double cx = CARDS_START_X + i * (CARD_W + CARD_GAP);
-            boolean isSelected = chars[i] == selected;
-            boolean isHovered  = i == hoveredIndex;
-            renderCard(gc, chars[i], cx, CARDS_Y, isSelected, isHovered);
-        }
+        String preload = GameContext.assets().isPreloadComplete() ? "ASSET SYNC COMPLETE" : "SYNCING SPRITES + AUDIO";
+        gc.setFill(GameContext.assets().isPreloadComplete()
+                ? Color.color(0.20, 0.90, 0.45)
+                : Color.color(0.92, 0.82, 0.18));
+        gc.fillText(preload, W - computeW(preload, 12) - 24, 40);
 
-        renderLorePanel();
-        renderConfirmButton();
+        Image preview = GameContext.assets().image("character.preview");
+        if (preview != null) {
+            gc.setImageSmoothing(false);
+            gc.drawImage(preview, 74, 36, 48, 48);
+        }
     }
 
-    private void renderCard(GraphicsContext gc, CharacterType c,
-                            double x, double y,
-                            boolean selected, boolean hovered) {
-
-        double lift   = selected ? -10 : (hovered ? -4 : 0);
-        double cardY  = y + lift;
-        Color border = selected
+    private void renderCard(CharacterType character, double x, double y, boolean isSelected, boolean isHovered) {
+        double lift = isSelected ? -10 : (isHovered ? -4 : 0);
+        double cardY = y + lift;
+        Color border = isSelected
                 ? Color.color(0.12, 0.90, 0.45)
-                : (hovered ? Color.color(0.35, 0.60, 0.48) : Color.color(0.14, 0.18, 0.24));
+                : (isHovered ? Color.color(0.35, 0.60, 0.48) : Color.color(0.14, 0.18, 0.24));
         drawPixelPanel(x, cardY, CARD_W, CARD_H,
-                selected ? Color.color(0.03, 0.11, 0.08, 0.96) : Color.color(0.03, 0.05, 0.07, 0.92),
+                isSelected ? Color.color(0.03, 0.11, 0.08, 0.96) : Color.color(0.03, 0.05, 0.07, 0.92),
                 border);
 
         double avatarY = cardY + 18;
         double avatarH = 100;
         gc.setFill(Color.color(0.04, 0.08, 0.08));
         gc.fillRect(snap(x + 16), snap(avatarY), CARD_W - 32, avatarH);
-        drawPixelSilhouette(x + CARD_W / 2.0, avatarY + 20, selected
-                ? Color.color(0.08, 0.82, 0.32)
-                : Color.color(0.28, 0.32, 0.38));
+        renderCharacterPreview(character, x + CARD_W / 2.0, avatarY + 6, isSelected);
 
         double textY = avatarY + avatarH + 24;
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
-        gc.setFill(selected ? Color.WHITE : Color.color(0.82, 0.84, 0.86));
-        String[] nameParts = c.name.split(" ");
+        gc.setFill(isSelected ? Color.WHITE : Color.color(0.82, 0.84, 0.86));
+        String[] nameParts = character.getName().split(" ");
         for (int i = 0; i < nameParts.length; i++) {
             gc.fillText(nameParts[i], x + CARD_W / 2 - computeW(nameParts[i], 14) / 2, textY + i * 16);
         }
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-        gc.setFill(selected
-                ? Color.color(0.15, 0.9, 0.4, 0.9)
-                : Color.color(0.5, 0.5, 0.55));
-        String title = c.title.toUpperCase();
+        gc.setFill(isSelected ? Color.color(0.15, 0.9, 0.4, 0.9) : Color.color(0.5, 0.5, 0.55));
+        String title = character.getTitle().toUpperCase();
         gc.fillText(title, x + CARD_W / 2 - computeW(title, 11) / 2, textY + 56);
 
         double statY = textY + 82;
@@ -158,15 +159,16 @@ public class CharacterSelectScene {
         gc.setFill(Color.color(0.38, 0.62, 0.52));
         gc.fillText("LOADOUT", x + CARD_W / 2 - computeW("LOADOUT", 10) / 2, statY);
 
-        renderMiniBar(gc, "HP",  x + 12, statY + 14, CARD_W - 24, c.getHealth() / 200.0, selected);
-        renderMiniBar(gc, "DMG", x + 12, statY + 30, CARD_W - 24, c.getDamage() / 250.0, selected);
-        renderMiniBar(gc, "MOV", x + 12, statY + 46, CARD_W - 24, c.getMovementSpeed() / 130.0, selected);
+        renderMiniBar("HP", x + 12, statY + 14, CARD_W - 24, character.getHealth() / 200.0, isSelected);
+        renderMiniBar("DMG", x + 12, statY + 30, CARD_W - 24, character.getDamage() / 250.0, isSelected);
+        renderMiniBar("MOV", x + 12, statY + 46, CARD_W - 24, character.getMovementSpeed() / 130.0, isSelected);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 10));
         gc.setFill(Color.color(0.58, 0.66, 0.72));
-        gc.fillText(c.getAssignedWeaponLabel().toUpperCase(), x + CARD_W / 2 - computeW(c.getAssignedWeaponLabel(), 10) / 2, statY + 66);
+        String weaponLabel = character.getAssignedWeaponLabel().toUpperCase();
+        gc.fillText(weaponLabel, x + CARD_W / 2 - computeW(weaponLabel, 10) / 2, statY + 66);
 
-        if (selected) {
+        if (isSelected) {
             gc.setFill(Color.color(0.15, 0.9, 0.4));
             gc.fillRect(snap(x + CARD_W - 88), snap(cardY + 12), 68, 20);
             gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 10));
@@ -175,22 +177,29 @@ public class CharacterSelectScene {
         }
     }
 
-    private void renderMiniBar(GraphicsContext gc, String label,
-                               double x, double y, double maxW,
-                               double fill, boolean active) {
+    private void renderCharacterPreview(CharacterType character, double centerX, double topY, boolean selectedCard) {
+        SpriteSheet sheet = GameContext.assets().sheet(character.getSpriteAssetId(), 32, 32);
+        if (sheet != null) {
+            int frame = ((int) Math.floor(elapsed * 6)) % 8;
+            sheet.drawFrame(gc, 0, frame, centerX - 32, topY, 64, 64, false);
+            return;
+        }
+
+        gc.setFill(selectedCard ? Color.color(0.08, 0.82, 0.32) : Color.color(0.28, 0.32, 0.38));
+        gc.fillOval(centerX - 24, topY + 8, 48, 48);
+    }
+
+    private void renderMiniBar(String label, double x, double y, double maxW, double fill, boolean active) {
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
         gc.setFill(Color.color(0.52, 0.58, 0.64));
         gc.fillText(label, x, y + 9);
 
         double barX = x + 32;
         double barW = maxW - 36;
-
         gc.setFill(Color.color(0.08, 0.10, 0.12));
         gc.fillRect(snap(barX), snap(y), barW, 10);
 
-        gc.setFill(active
-                ? Color.color(0.15, 0.85, 0.4, 0.9)
-                : Color.color(0.3, 0.5, 0.35, 0.6));
+        gc.setFill(active ? Color.color(0.15, 0.85, 0.4, 0.9) : Color.color(0.3, 0.5, 0.35, 0.6));
         gc.fillRect(snap(barX), snap(y), barW * fill, 10);
     }
 
@@ -203,7 +212,7 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
         gc.setFill(Color.color(0.86, 0.92, 0.88));
-        String roleLine = selected.title.toUpperCase() + " | HP " + selected.getHealth()
+        String roleLine = selected.getTitle().toUpperCase() + " | HP " + selected.getHealth()
                 + " | DMG " + selected.getDamage()
                 + " | MOV " + selected.getMovementSpeed()
                 + " | GUN " + selected.getAssignedWeaponLabel().toUpperCase();
@@ -211,7 +220,7 @@ public class CharacterSelectScene {
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.color(0.72, 0.78, 0.80));
-        gc.fillText(selected.lore.toUpperCase(), W / 2.0 - computeW(selected.lore, 12) / 2, panelY + 54);
+        gc.fillText(selected.getLore().toUpperCase(), W / 2.0 - computeW(selected.getLore(), 12) / 2, panelY + 54);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.color(0.15, 0.9, 0.4, 0.9));
@@ -255,16 +264,6 @@ public class CharacterSelectScene {
         }
     }
 
-    private void drawPixelSilhouette(double centerX, double topY, Color color) {
-        double x = snap(centerX - 16);
-        double y = snap(topY);
-        gc.setFill(color);
-        gc.fillRect(x + 8, y, 16, 16);
-        gc.fillRect(x + 4, y + 16, 24, 32);
-        gc.fillRect(x + 8, y + 48, 6, 16);
-        gc.fillRect(x + 18, y + 48, 6, 16);
-    }
-
     private void drawPixelPanel(double x, double y, double width, double height, Color bg, Color border) {
         x = snap(x);
         y = snap(y);
@@ -283,16 +282,20 @@ public class CharacterSelectScene {
         CharacterType[] chars = CharacterType.values();
         for (int i = 0; i < chars.length; i++) {
             double cx = CARDS_START_X + i * (CARD_W + CARD_GAP);
-            if (mx >= cx && mx <= cx + CARD_W && my >= CARDS_Y - 15 && my <= CARDS_Y + CARD_H + 5) {
+            if (isInside(mx, my, cx, CARDS_Y - 15, CARD_W, CARD_H + 20)) {
                 return i;
             }
         }
         return -1;
     }
 
+    private boolean isInside(double mx, double my, double x, double y, double width, double height) {
+        return mx >= x && mx <= x + width && my >= y && my <= y + height;
+    }
+
     private void proceedToGame() {
-        GameScene game = new GameScene(selected);
-        Main.setScene(game.getScene());
+        loop.stop();
+        GameContext.showGame(selected);
     }
 
     private double computeW(String text, double size) {
@@ -303,5 +306,7 @@ public class CharacterSelectScene {
         return Math.round(value / PIXEL) * PIXEL;
     }
 
-    public Scene getScene() { return scene; }
+    public Scene getScene() {
+        return scene;
+    }
 }
