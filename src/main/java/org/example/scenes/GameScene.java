@@ -6,9 +6,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import org.example.Main;
 import org.example.assets.AnimationStrip;
 import org.example.assets.AssetRegistry;
@@ -24,13 +21,10 @@ import org.example.gameplay.PlayerActor;
 import org.example.gameplay.Projectile;
 import org.example.gameplay.StageCatalog;
 import org.example.gameplay.StageDefinition;
-import org.example.gameplay.StageExitMarker;
 import org.example.player.CharacterType;
 import org.example.runtime.GameContext;
 import org.example.weapons.Weapon;
-import org.example.weapons.WeaponType;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -54,9 +48,10 @@ public class GameScene {
     private final PlayerActor player;
     private final EntityManager<EnemyActor> enemies = new EntityManager<>();
     private final EntityManager<Projectile> projectiles = new EntityManager<>();
-    private final StageExitMarker stageExit = new StageExitMarker(W - 92, GROUND_Y - 84, 44, 64);
-    private final List<PlatformTile> platforms = new ArrayList<>();
     private final List<StageDefinition> stages = StageCatalog.buildStoryStages();
+    private final StageArena arena = new StageArena(W, GROUND_Y);
+    private final GameVisualRenderer visualRenderer = new GameVisualRenderer(gc, assets, W, H, GROUND_Y);
+    private final GameHudRenderer hudRenderer = new GameHudRenderer(gc, W, H, PIXEL);
 
     private final GameLoop loop;
 
@@ -88,8 +83,6 @@ public class GameScene {
     private double muzzleFlashX;
     private double muzzleFlashY;
     private double muzzleFlashAngle;
-    private double cameraX;
-    private double worldWidth;
 
     private boolean finished;
     private boolean victory;
@@ -186,7 +179,7 @@ public class GameScene {
             }
         }
 
-        if (!finished && enemies.isEmpty() && !stageExit.isActive()) {
+        if (!finished && enemies.isEmpty() && !arena.exitMarker().isActive()) {
             handleStageCleared(stage);
         }
 
@@ -241,7 +234,7 @@ public class GameScene {
         }
 
         if (!player.isOnGround()) {
-            for (PlatformTile platform : platforms) {
+            for (PlatformTile platform : arena.platforms()) {
                 if (player.getVy() >= 0 && CollisionManager.landsOnTop(player, platform, previousBottom)) {
                     player.landOn(platform.getY());
                     break;
@@ -263,7 +256,7 @@ public class GameScene {
             footstepTimer = 0;
         }
 
-        player.clampX(0, worldWidth - player.getWidth());
+        arena.clampPlayer(player);
     }
 
     private void updateProjectiles(double dt) {
@@ -271,7 +264,7 @@ public class GameScene {
             Projectile projectile = iterator.next();
             projectile.update(dt);
 
-            boolean remove = projectile.isExpired(worldWidth, H);
+            boolean remove = projectile.isExpired(arena.worldWidth(), H);
             if (!remove) {
                 for (EnemyActor enemy : enemies) {
                     if (CollisionManager.circleHitsRect(projectile, enemy)) {
@@ -302,7 +295,7 @@ public class GameScene {
             enemy.updateStatusEffects(dt);
             enemy.setAttackCooldown(Math.max(0, enemy.getAttackCooldown() - dt));
             updateEnemyPhysics(enemy, dt);
-            enemy.chase(player, dt, 20, worldWidth - enemy.getWidth() - 20);
+            enemy.chase(player, dt, 20, arena.worldWidth() - enemy.getWidth() - 20);
 
             if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
                 applyDamage(enemy.isBoss() ? 22 : 12);
@@ -328,7 +321,7 @@ public class GameScene {
         }
 
         if (!enemy.isOnGround()) {
-            for (PlatformTile platform : platforms) {
+            for (PlatformTile platform : arena.platforms()) {
                 if (enemy.getVy() >= 0 && CollisionManager.landsOnTop(enemy, platform, previousBottom)) {
                     enemy.landOn(platform.getY());
                     break;
@@ -349,7 +342,7 @@ public class GameScene {
             return true;
         }
 
-        for (PlatformTile platform : platforms) {
+        for (PlatformTile platform : arena.platforms()) {
             boolean ahead = dx > 0
                     ? platform.getX() > enemy.getX() && platform.getX() - enemy.getX() < 120
                     : enemy.getX() > platform.getX() && enemy.getX() - platform.getX() < 120;
@@ -377,7 +370,7 @@ public class GameScene {
 
         double originX = player.getCenterX();
         double originY = player.getY() + player.getHeight() * 0.35;
-        double targetX = input.getMouseX() + cameraX;
+        double targetX = input.getMouseX() + arena.cameraX();
         double targetY = input.getMouseY();
         double angle = Math.atan2(targetY - originY, targetX - originX);
 
@@ -486,21 +479,13 @@ public class GameScene {
         stageIndex = newIndex;
         projectiles.clear();
         enemies.clear();
-        platforms.clear();
         stageIntroTimer = 4.5;
         stageBossSpawned = false;
-        stageExit.setActive(false);
-        stageExit.setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
+        arena.exitMarker().setActive(false);
+        arena.exitMarker().setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
 
         StageDefinition stage = stages.get(stageIndex);
-        worldWidth = computeWorldWidth(stage);
-        cameraX = 0;
-        buildStageLayout(stage);
-        player.setX(120);
-        player.setY(GROUND_Y - player.getHeight());
-        player.setVx(0);
-        player.setVy(0);
-        player.setOnGround(true);
+        arena.prepareStage(stage, stageIndex, player, loadBackdrop(stage));
 
         if (stage.hasMobs()) {
             spawnMobWave(stage);
@@ -511,10 +496,7 @@ public class GameScene {
 
     private void spawnMobWave(StageDefinition stage) {
         for (int i = 0; i < stage.enemyCount(); i++) {
-            double laneStart = Math.max(520, worldWidth * 0.40);
-            double laneWidth = Math.max(280, worldWidth * 0.45);
-            double spacing = laneWidth / Math.max(1, stage.enemyCount() - 1);
-            double x = laneStart + i * spacing;
+            double x = arena.mobSpawnX(i, stage.enemyCount());
             EnemyActor enemy = new EnemyActor(stage.enemyName(), x, GROUND_Y - 54, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
             if (!stage.enemySpriteIds().isEmpty()) {
@@ -526,7 +508,7 @@ public class GameScene {
 
     private void spawnBoss(StageDefinition stage) {
         stageBossSpawned = true;
-        double x = worldWidth - (stageIndex == stages.size() - 1 ? 420 : 320);
+        double x = arena.bossSpawnX(stageIndex == stages.size() - 1);
         EnemyActor enemy = new EnemyActor(stage.bossName(), x, GROUND_Y - 96, 74, 96,
                 stage.bossHealth(), stage.bossHealth(), stage.bossSpeed(), stage.tint(), true);
         if (stage.bossSpriteId() != null) {
@@ -535,44 +517,8 @@ public class GameScene {
         enemies.add(enemy);
     }
 
-    private javafx.scene.image.Image loadBackdrop(StageDefinition stage) {
+    private Image loadBackdrop(StageDefinition stage) {
         return assets.image(stage.backdropAssetId());
-    }
-
-    private double computeWorldWidth(StageDefinition stage) {
-        Image backdrop = loadBackdrop(stage);
-        double targetH = GROUND_Y - 24 - 64;
-        if (backdrop == null || backdrop.getHeight() <= 0) {
-            return W * 1.75;
-        }
-        return Math.max(W, targetH * (backdrop.getWidth() / backdrop.getHeight()));
-    }
-
-    private void buildStageLayout(StageDefinition stage) {
-        double w = worldWidth;
-        double lowY = 520;
-        double midY = 456;
-        double highY = 392;
-
-        platforms.add(new PlatformTile(140, lowY, 240, 18));
-        platforms.add(new PlatformTile(w * 0.28, midY, 210, 18));
-        platforms.add(new PlatformTile(w * 0.48, highY, 210, 18));
-        platforms.add(new PlatformTile(w * 0.68, midY + 24, 200, 18));
-
-        if (stageIndex == 0) {
-            platforms.add(new PlatformTile(w * 0.84, 420, 170, 18));
-        } else if (stageIndex == 1) {
-            platforms.add(new PlatformTile(w * 0.80, 370, 180, 18));
-            platforms.add(new PlatformTile(w * 0.58, 512, 170, 18));
-        } else if (stageIndex == 2) {
-            platforms.add(new PlatformTile(w * 0.75, 338, 200, 18));
-        } else {
-            platforms.add(new PlatformTile(w * 0.55, 350, 190, 18));
-            platforms.add(new PlatformTile(w * 0.86, 460, 180, 18));
-        }
-
-        stageExit.setX(worldWidth - 92);
-        stageExit.setY(GROUND_Y - 84);
     }
 
     private void applyEnemySprite(EnemyActor enemy, String spriteId) {
@@ -632,8 +578,8 @@ public class GameScene {
             return;
         }
 
-        stageExit.setActive(true);
-        stageExit.setLabel("NEXT");
+        arena.exitMarker().setActive(true);
+        arena.exitMarker().setLabel("NEXT");
         setStatus(getStageClearMessage(stage));
     }
 
@@ -648,212 +594,55 @@ public class GameScene {
     }
 
     private void updateStageExit() {
-        if (!stageExit.isActive()) {
+        if (!arena.exitMarker().isActive()) {
             return;
         }
 
-        if (CollisionManager.intersects(player, stageExit)) {
+        if (CollisionManager.intersects(player, arena.exitMarker())) {
             startStage(stageIndex + 1);
         }
     }
 
     private void updateCamera() {
-        double target = player.getCenterX() - W / 2.0;
-        cameraX += (target - cameraX) * 0.12;
-        cameraX = clamp(cameraX, 0, Math.max(0, worldWidth - W));
+        arena.updateCamera(player);
     }
 
     private void renderGame() {
         StageDefinition stage = stages.get(stageIndex);
 
-        renderBackground(stage);
+        visualRenderer.renderBackground(stage, loadBackdrop(stage), arena.cameraX(), arena.worldWidth());
         gc.save();
-        gc.translate(-cameraX, 0);
-        for (PlatformTile platform : platforms) {
+        gc.translate(-arena.cameraX(), 0);
+        for (PlatformTile platform : arena.platforms()) {
             platform.render(gc);
         }
-        stageExit.render(gc);
+        arena.exitMarker().render(gc);
         player.render(gc);
-        renderPlayerWeapon();
-        renderMuzzleFlash();
+        visualRenderer.renderPlayerWeapon(player, weapon, finished, victory, getAimAngle(), muzzleFlashTimer);
+        visualRenderer.renderMuzzleFlash(muzzleFlashTimer, muzzleFlashX, muzzleFlashY, muzzleFlashAngle);
         projectiles.renderAll(gc);
         enemies.renderAll(gc);
         gc.restore();
-        renderHud(stage);
+        hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo, getAbilityMeterFill(),
+                getAbilityStatusText(), getReloadStatusText(), getBuffStatusText(), arena.exitMarker().isActive());
 
         if (stageIntroTimer > 0) {
-            renderStageIntro(stage);
+            hudRenderer.renderStageIntro(stage);
         }
 
         if (statusTimer > 0) {
-            renderStatusBanner();
+            hudRenderer.renderStatusBanner(statusText);
         }
 
         if (finished) {
-            renderEndOverlay();
+            hudRenderer.renderEndOverlay(victory);
         }
-    }
-
-    private void renderBackground(StageDefinition stage) {
-        gc.setFill(Color.color(0.01, 0.02, 0.03));
-        gc.fillRect(0, 0, W, H);
-
-        Image backdrop = loadBackdrop(stage);
-        if (backdrop != null) {
-            drawBackdropAsRoom(backdrop);
-        } else {
-            gc.setFill(Color.color(0.03, 0.08, 0.11));
-            gc.fillRect(0, 0, W, H - 96);
-        }
-
-        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.08));
-        gc.fillRect(0, 72, W, GROUND_Y - 72);
-
-        gc.setFill(Color.color(0, 0, 0, 0.10));
-        gc.fillRect(0, 0, W, 68);
-
-        gc.setFill(Color.color(0.01, 0.02, 0.03, 0.18));
-        gc.fillRect(0, GROUND_Y - 36, W, 36);
-
-        gc.setFill(Color.color(0.03, 0.05, 0.06, 0.55));
-        gc.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-    }
-
-    private void drawBackdropAsRoom(Image backdrop) {
-        gc.setImageSmoothing(false);
-
-        double targetX = 0;
-        double targetY = 64;
-        double targetW = W;
-        double targetH = GROUND_Y - 24 - targetY;
-        double scaledWorldWidth = targetH * (backdrop.getWidth() / backdrop.getHeight());
-        double scrollRatio = scaledWorldWidth <= targetW ? 0 : cameraX / (scaledWorldWidth - targetW);
-        double sourceW = backdrop.getWidth() * (targetW / scaledWorldWidth);
-        double sourceX = scrollRatio * (backdrop.getWidth() - sourceW);
-        double sourceY = 0;
-        double sourceH = backdrop.getHeight();
-
-        gc.drawImage(backdrop, sourceX, sourceY, sourceW, sourceH, targetX, targetY, targetW, targetH);
-        gc.setFill(Color.color(0, 0, 0, 0.08));
-        gc.fillRect(targetX, targetY, targetW, targetH);
-    }
-
-    private void renderMuzzleFlash() {
-        if (muzzleFlashTimer <= 0) {
-            return;
-        }
-
-        Image flashSheet = assets.image("effect.muzzle_flash");
-        if (flashSheet == null) {
-            return;
-        }
-
-        int frameWidth = 32;
-        int frameHeight = 64;
-        int columns = (int) flashSheet.getWidth() / frameWidth;
-        int column = Math.min(columns - 1, (int) ((0.08 - muzzleFlashTimer) / 0.08 * columns));
-
-        gc.save();
-        gc.translate(muzzleFlashX, muzzleFlashY);
-        gc.rotate(Math.toDegrees(muzzleFlashAngle));
-        gc.setImageSmoothing(false);
-        gc.drawImage(flashSheet, column * frameWidth, 0, frameWidth, frameHeight, 0, -14, 48, 36);
-        gc.restore();
-    }
-
-    private void renderPlayerWeapon() {
-        if (finished && !victory) {
-            return;
-        }
-
-        double aimAngle = getAimAngle();
-        boolean aimingRight = Math.cos(aimAngle) >= 0;
-        double shoulderX = player.getCenterX() + (aimingRight ? 10 : -10);
-        double shoulderY = player.getY() + player.getHeight() * 0.38;
-
-        gc.save();
-        gc.translate(shoulderX, shoulderY);
-        gc.rotate(Math.toDegrees(aimAngle));
-
-        gc.setFill(Color.color(0, 0, 0, 0.18));
-        gc.fillRect(4, -2, 26, 6);
-
-        if (weapon.getType() == WeaponType.SMG) {
-            renderSmgWeaponSprite();
-        } else {
-            renderProceduralWeapon();
-        }
-
-        gc.restore();
-    }
-
-    private void renderSmgWeaponSprite() {
-        Image smgSheet = assets.image("weapon.smg");
-        if (smgSheet == null) {
-            renderProceduralWeapon();
-            return;
-        }
-
-        int frameWidth = 32;
-        int frameHeight = 32;
-        int column = muzzleFlashTimer > 0 ? 1 : 0;
-        int row = 1;
-
-        gc.setImageSmoothing(false);
-        gc.drawImage(smgSheet, column * frameWidth, row * frameHeight, frameWidth, frameHeight,
-                -4, -18, 44, 24);
-    }
-
-    private void renderProceduralWeapon() {
-        Color body = switch (weapon.getType()) {
-            case ASSAULT_RIFLE -> Color.color(0.34, 0.40, 0.46);
-            case SHOTGUN -> Color.color(0.56, 0.34, 0.16);
-            case SNIPER -> Color.color(0.74, 0.74, 0.78);
-            case LMG -> Color.color(0.44, 0.22, 0.22);
-            case SMG -> Color.color(0.34, 0.48, 0.26);
-        };
-
-        gc.setFill(body);
-        switch (weapon.getType()) {
-            case ASSAULT_RIFLE -> {
-                gc.fillRect(0, -5, 30, 8);
-                gc.fillRect(12, -9, 10, 4);
-                gc.fillRect(8, 3, 5, 8);
-                gc.fillRect(26, -3, 8, 3);
-            }
-            case SHOTGUN -> {
-                gc.fillRect(0, -4, 26, 7);
-                gc.fillRect(18, -2, 15, 2);
-                gc.fillRect(4, 3, 6, 11);
-            }
-            case SNIPER -> {
-                gc.fillRect(0, -4, 36, 6);
-                gc.fillRect(10, -9, 12, 3);
-                gc.fillRect(6, 2, 5, 10);
-                gc.fillRect(32, -2, 12, 2);
-            }
-            case LMG -> {
-                gc.fillRect(0, -5, 32, 8);
-                gc.fillRect(10, -9, 12, 4);
-                gc.fillRect(6, 3, 6, 10);
-                gc.fillRect(14, 5, 12, 3);
-                gc.fillRect(28, -3, 10, 3);
-            }
-            case SMG -> {
-                gc.fillRect(0, -4, 24, 7);
-                gc.fillRect(6, 3, 4, 8);
-                gc.fillRect(20, -2, 8, 2);
-            }
-        }
-
-        gc.setFill(Color.color(0.92, 0.96, 1.0, 0.22));
-        gc.fillRect(2, -3, 8, 2);
     }
 
     private double getAimAngle() {
         double originX = player.getCenterX();
         double originY = player.getY() + player.getHeight() * 0.35;
-        double targetX = input.getMouseX() + cameraX;
+        double targetX = input.getMouseX() + arena.cameraX();
         double targetY = input.getMouseY();
 
         if (targetX == 0 && targetY == 0) {
@@ -861,188 +650,6 @@ public class GameScene {
         }
 
         return Math.atan2(targetY - originY, targetX - originX);
-    }
-
-    private void renderHud(StageDefinition stage) {
-        double panelY = 18;
-        double accentR = stage.tint().getRed();
-        double accentG = stage.tint().getGreen();
-        double accentB = stage.tint().getBlue();
-
-        drawPixelPanel(20, panelY, 320, 104, Color.color(0.01, 0.03, 0.05, 0.84),
-                Color.color(0.10, 0.76, 0.42, 0.72));
-        drawPixelPanel(W / 2.0 - 190, panelY, 380, 52, Color.color(0.01, 0.03, 0.05, 0.78),
-                Color.color(accentR, accentG, accentB, 0.70));
-        drawPixelPanel(W - 224, panelY, 204, 104, Color.color(0.01, 0.03, 0.05, 0.84),
-                Color.color(0.10, 0.76, 0.42, 0.72));
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
-        gc.setFill(Color.WHITE);
-        gc.fillText(character.getName(), 36, panelY + 28);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-        gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText(character.getTitle() + " | " + weapon.getName(), 36, panelY + 48);
-
-        gc.setFill(Color.WHITE);
-        gc.fillText("HP " + hp + "/" + maxHp, 36, panelY + 68);
-        drawBar(36, panelY + 74, 288, 10, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
-
-        gc.setFill(Color.WHITE);
-        gc.fillText("SKILL " + getAbilityStatusText(), 36, panelY + 96);
-        drawBar(36, panelY + 102, 288, 10, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-        gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText(stage.name().toUpperCase(), W / 2.0 - textWidth(stage.name(), 12) / 2, panelY + 20);
-
-        gc.setFont(Font.font("Monospaced", 11));
-        gc.setFill(Color.WHITE);
-        String objective = stage.objective().toUpperCase();
-        gc.fillText(objective, W / 2.0 - textWidth(objective, 11) / 2, panelY + 38);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-        gc.setFill(Color.WHITE);
-        gc.fillText("AMMO", W - 204, panelY + 28);
-        gc.fillText(ammo + "/" + weapon.getMagazineSize(), W - 204, panelY + 48);
-        gc.fillText("RELOAD", W - 204, panelY + 72);
-        gc.fillText(getReloadStatusText(), W - 204, panelY + 92);
-
-        String buffText = getBuffStatusText();
-        if (buffText != null) {
-            drawPixelPanel(20, H - 74, 260, 38, Color.color(0.01, 0.03, 0.05, 0.82),
-                    Color.color(0.10, 0.76, 0.42, 0.70));
-            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-            gc.setFill(Color.color(0.15, 0.9, 0.4));
-            gc.fillText(buffText, 34, H - 50);
-        }
-
-        if (stageExit.isActive()) {
-            drawPixelPanel(W - 220, H - 74, 200, 38, Color.color(0.01, 0.03, 0.05, 0.82),
-                    Color.color(0.10, 0.76, 0.42, 0.70));
-            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-            gc.setFill(Color.color(0.15, 0.9, 0.4));
-            gc.fillText("EXIT OPEN  MOVE INTO MARKER", W - 204, H - 50);
-        }
-    }
-
-    private void renderStageIntro(StageDefinition stage) {
-        gc.setFill(Color.color(0, 0, 0, 0.54));
-        gc.fillRect(0, 0, W, H);
-
-        drawPixelPanel(180, 210, W - 360, 190, Color.color(0.03, 0.04, 0.06, 0.96),
-                Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.95));
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 24));
-        gc.setFill(Color.WHITE);
-        gc.fillText(stage.name(), W / 2.0 - textWidth(stage.name(), 24) / 2, 265);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
-        gc.setFill(Color.color(0.7, 0.75, 0.72));
-        gc.fillText(stage.objective().toUpperCase(), W / 2.0 - textWidth(stage.objective(), 15) / 2, 304);
-
-        gc.setFont(Font.font("Monospaced", 13));
-        gc.setFill(Color.color(0.86, 0.86, 0.86));
-        wrapText(stage.description(), 220, 338, W - 440, 20);
-    }
-
-    private void renderStatusBanner() {
-        drawPixelPanel(W / 2.0 - 180, H - 94, 360, 42, Color.color(0.02, 0.03, 0.04, 0.92),
-                Color.color(0.18, 0.8, 0.32, 0.85));
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 16));
-        gc.setFill(Color.color(0.9, 0.95, 0.9));
-        gc.fillText(statusText, W / 2.0 - textWidth(statusText, 16) / 2, H - 66);
-    }
-
-    private void renderEndOverlay() {
-        gc.setFill(Color.color(0, 0, 0, 0.76));
-        gc.fillRect(0, 0, W, H);
-
-        drawPixelPanel(120, 120, W - 240, H - 240, Color.color(0.04, 0.05, 0.06, 0.98),
-                Color.color(0.18, 0.82, 0.34, 0.85));
-
-        String title = victory ? "THE LAIR" : "Synchronization Failed";
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 34));
-        gc.setFill(Color.WHITE);
-        gc.fillText(title, W / 2.0 - textWidth(title, 34) / 2, 190);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
-        gc.setFill(Color.color(0.75, 0.8, 0.76));
-        String subtitle = victory
-                ? "Caesar was only the first host. The real trap was waiting in the courtyard."
-                : "The campus falls silent as LAIR keeps learning.";
-        gc.fillText(subtitle, W / 2.0 - textWidth(subtitle, 15) / 2, 230);
-
-        gc.setFont(Font.font("Monospaced", 13));
-        gc.setFill(Color.color(0.9, 0.9, 0.9));
-        if (victory) {
-            wrapText("Caesar falls in the gym and drops a stabilized LAIR vial, but the real Sir Khai was already dead. "
-                            + "The creature guiding you was LAIR wearing his face, learning trust before it fed. "
-                            + "In the courtyard, the mimic reveals itself and the final fight ends the night's worst lie.",
-                    170, 290, W - 340, 28);
-        } else {
-            wrapText("You were close, but the synchronized aura failed before the school could be reclaimed. "
-                            + "Caesar remains the first host, and the false Sir Khai keeps feeding the campus to LAIR.",
-                    170, 300, W - 340, 28);
-        }
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
-        gc.setFill(Color.color(0.18, 0.85, 0.32));
-        String prompt = "Press ENTER or SPACE to return to character select";
-        gc.fillText(prompt, W / 2.0 - textWidth(prompt, 14) / 2, H - 150);
-    }
-
-    private void drawBar(double x, double y, double width, double height, double fill, Color color) {
-        x = snap(x);
-        y = snap(y);
-        width = snap(width);
-        height = snap(height);
-
-        gc.setFill(Color.color(0.12, 0.14, 0.16));
-        gc.fillRect(x, y, width, height);
-        gc.setFill(Color.color(0.05, 0.06, 0.08));
-        gc.fillRect(x + PIXEL, y + PIXEL, width - PIXEL * 2, height - PIXEL * 2);
-        gc.setFill(color);
-        gc.fillRect(x + PIXEL, y + PIXEL, (width - PIXEL * 2) * clamp(fill, 0, 1), height - PIXEL * 2);
-    }
-
-    private void drawPixelPanel(double x, double y, double width, double height, Color bg, Color border) {
-        x = snap(x);
-        y = snap(y);
-        width = snap(width);
-        height = snap(height);
-
-        gc.setFill(border);
-        gc.fillRect(x, y, width, height);
-        gc.setFill(Color.color(0.02, 0.03, 0.03));
-        gc.fillRect(x + PIXEL, y + PIXEL, width - PIXEL * 2, height - PIXEL * 2);
-        gc.setFill(bg);
-        gc.fillRect(x + PIXEL * 2, y + PIXEL * 2, width - PIXEL * 4, height - PIXEL * 4);
-    }
-
-    private double snap(double value) {
-        return Math.round(value / PIXEL) * PIXEL;
-    }
-
-    private void wrapText(String text, double x, double y, double maxWidth, double lineHeight) {
-        String[] words = text.split(" ");
-        StringBuilder line = new StringBuilder();
-        double currentY = y;
-
-        for (String word : words) {
-            String nextLine = line.isEmpty() ? word : line + " " + word;
-            if (textWidth(nextLine, 16) > maxWidth) {
-                gc.fillText(line.toString(), x, currentY);
-                currentY += lineHeight;
-                line = new StringBuilder(word);
-            } else {
-                line = new StringBuilder(nextLine);
-            }
-        }
-
-        if (!line.isEmpty()) {
-            gc.fillText(line.toString(), x, currentY);
-        }
     }
 
     private double getAbilityMeterFill() {
@@ -1086,14 +693,6 @@ public class GameScene {
     private void exitToCharacterSelect() {
         loop.stop();
         GameContext.showCharacterSelect();
-    }
-
-    private double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private double textWidth(String text, double size) {
-        return text.length() * size * 0.52;
     }
 
     public Scene getScene() {
