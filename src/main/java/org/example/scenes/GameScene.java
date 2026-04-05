@@ -30,6 +30,7 @@ import org.example.runtime.GameContext;
 import org.example.weapons.Weapon;
 import org.example.weapons.WeaponType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -54,12 +55,7 @@ public class GameScene {
     private final EntityManager<EnemyActor> enemies = new EntityManager<>();
     private final EntityManager<Projectile> projectiles = new EntityManager<>();
     private final StageExitMarker stageExit = new StageExitMarker(W - 92, GROUND_Y - 84, 44, 64);
-    private final List<PlatformTile> platforms = List.of(
-            new PlatformTile(120, 520, 220, 18),
-            new PlatformTile(410, 456, 190, 18),
-            new PlatformTile(710, 392, 190, 18),
-            new PlatformTile(972, 480, 170, 18)
-    );
+    private final List<PlatformTile> platforms = new ArrayList<>();
     private final List<StageDefinition> stages = StageCatalog.buildStoryStages();
 
     private final GameLoop loop;
@@ -92,6 +88,8 @@ public class GameScene {
     private double muzzleFlashX;
     private double muzzleFlashY;
     private double muzzleFlashAngle;
+    private double cameraX;
+    private double worldWidth;
 
     private boolean finished;
     private boolean victory;
@@ -176,6 +174,7 @@ public class GameScene {
         updateProjectiles(dt);
         updateEnemies(dt);
         updateStageExit();
+        updateCamera();
 
         if (hp <= 0) {
             finished = true;
@@ -264,7 +263,7 @@ public class GameScene {
             footstepTimer = 0;
         }
 
-        player.clampX(0, W - player.getWidth());
+        player.clampX(0, worldWidth - player.getWidth());
     }
 
     private void updateProjectiles(double dt) {
@@ -272,7 +271,7 @@ public class GameScene {
             Projectile projectile = iterator.next();
             projectile.update(dt);
 
-            boolean remove = projectile.isExpired(W, H);
+            boolean remove = projectile.isExpired(worldWidth, H);
             if (!remove) {
                 for (EnemyActor enemy : enemies) {
                     if (CollisionManager.circleHitsRect(projectile, enemy)) {
@@ -303,7 +302,7 @@ public class GameScene {
             enemy.updateStatusEffects(dt);
             enemy.setAttackCooldown(Math.max(0, enemy.getAttackCooldown() - dt));
             updateEnemyPhysics(enemy, dt);
-            enemy.chase(player, dt, 20, W - enemy.getWidth() - 20);
+            enemy.chase(player, dt, 20, worldWidth - enemy.getWidth() - 20);
 
             if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
                 applyDamage(enemy.isBoss() ? 22 : 12);
@@ -378,7 +377,9 @@ public class GameScene {
 
         double originX = player.getCenterX();
         double originY = player.getY() + player.getHeight() * 0.35;
-        double angle = Math.atan2(input.getMouseY() - originY, input.getMouseX() - originX);
+        double targetX = input.getMouseX() + cameraX;
+        double targetY = input.getMouseY();
+        double angle = Math.atan2(targetY - originY, targetX - originX);
 
         muzzleFlashTimer = 0.08;
         muzzleFlashX = originX;
@@ -485,12 +486,22 @@ public class GameScene {
         stageIndex = newIndex;
         projectiles.clear();
         enemies.clear();
+        platforms.clear();
         stageIntroTimer = 4.5;
         stageBossSpawned = false;
         stageExit.setActive(false);
         stageExit.setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
 
         StageDefinition stage = stages.get(stageIndex);
+        worldWidth = computeWorldWidth(stage);
+        cameraX = 0;
+        buildStageLayout(stage);
+        player.setX(120);
+        player.setY(GROUND_Y - player.getHeight());
+        player.setVx(0);
+        player.setVy(0);
+        player.setOnGround(true);
+
         if (stage.hasMobs()) {
             spawnMobWave(stage);
         } else if (stage.hasBoss()) {
@@ -500,7 +511,10 @@ public class GameScene {
 
     private void spawnMobWave(StageDefinition stage) {
         for (int i = 0; i < stage.enemyCount(); i++) {
-            double x = 620 + i * 84;
+            double laneStart = Math.max(520, worldWidth * 0.40);
+            double laneWidth = Math.max(280, worldWidth * 0.45);
+            double spacing = laneWidth / Math.max(1, stage.enemyCount() - 1);
+            double x = laneStart + i * spacing;
             EnemyActor enemy = new EnemyActor(stage.enemyName(), x, GROUND_Y - 54, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
             if (!stage.enemySpriteIds().isEmpty()) {
@@ -512,7 +526,7 @@ public class GameScene {
 
     private void spawnBoss(StageDefinition stage) {
         stageBossSpawned = true;
-        double x = stageIndex == stages.size() - 1 ? 980 : 920;
+        double x = worldWidth - (stageIndex == stages.size() - 1 ? 420 : 320);
         EnemyActor enemy = new EnemyActor(stage.bossName(), x, GROUND_Y - 96, 74, 96,
                 stage.bossHealth(), stage.bossHealth(), stage.bossSpeed(), stage.tint(), true);
         if (stage.bossSpriteId() != null) {
@@ -523,6 +537,42 @@ public class GameScene {
 
     private javafx.scene.image.Image loadBackdrop(StageDefinition stage) {
         return assets.image(stage.backdropAssetId());
+    }
+
+    private double computeWorldWidth(StageDefinition stage) {
+        Image backdrop = loadBackdrop(stage);
+        double targetH = GROUND_Y - 24 - 64;
+        if (backdrop == null || backdrop.getHeight() <= 0) {
+            return W * 1.75;
+        }
+        return Math.max(W, targetH * (backdrop.getWidth() / backdrop.getHeight()));
+    }
+
+    private void buildStageLayout(StageDefinition stage) {
+        double w = worldWidth;
+        double lowY = 520;
+        double midY = 456;
+        double highY = 392;
+
+        platforms.add(new PlatformTile(140, lowY, 240, 18));
+        platforms.add(new PlatformTile(w * 0.28, midY, 210, 18));
+        platforms.add(new PlatformTile(w * 0.48, highY, 210, 18));
+        platforms.add(new PlatformTile(w * 0.68, midY + 24, 200, 18));
+
+        if (stageIndex == 0) {
+            platforms.add(new PlatformTile(w * 0.84, 420, 170, 18));
+        } else if (stageIndex == 1) {
+            platforms.add(new PlatformTile(w * 0.80, 370, 180, 18));
+            platforms.add(new PlatformTile(w * 0.58, 512, 170, 18));
+        } else if (stageIndex == 2) {
+            platforms.add(new PlatformTile(w * 0.75, 338, 200, 18));
+        } else {
+            platforms.add(new PlatformTile(w * 0.55, 350, 190, 18));
+            platforms.add(new PlatformTile(w * 0.86, 460, 180, 18));
+        }
+
+        stageExit.setX(worldWidth - 92);
+        stageExit.setY(GROUND_Y - 84);
     }
 
     private void applyEnemySprite(EnemyActor enemy, String spriteId) {
@@ -607,10 +657,18 @@ public class GameScene {
         }
     }
 
+    private void updateCamera() {
+        double target = player.getCenterX() - W / 2.0;
+        cameraX += (target - cameraX) * 0.12;
+        cameraX = clamp(cameraX, 0, Math.max(0, worldWidth - W));
+    }
+
     private void renderGame() {
         StageDefinition stage = stages.get(stageIndex);
 
         renderBackground(stage);
+        gc.save();
+        gc.translate(-cameraX, 0);
         for (PlatformTile platform : platforms) {
             platform.render(gc);
         }
@@ -620,6 +678,7 @@ public class GameScene {
         renderMuzzleFlash();
         projectiles.renderAll(gc);
         enemies.renderAll(gc);
+        gc.restore();
         renderHud(stage);
 
         if (stageIntroTimer > 0) {
@@ -647,7 +706,7 @@ public class GameScene {
             gc.fillRect(0, 0, W, H - 96);
         }
 
-        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.10));
+        gc.setFill(Color.color(stage.tint().getRed(), stage.tint().getGreen(), stage.tint().getBlue(), 0.08));
         gc.fillRect(0, 72, W, GROUND_Y - 72);
 
         gc.setFill(Color.color(0, 0, 0, 0.10));
@@ -667,22 +726,12 @@ public class GameScene {
         double targetY = 64;
         double targetW = W;
         double targetH = GROUND_Y - 24 - targetY;
-
-        double imageAspect = backdrop.getWidth() / backdrop.getHeight();
-        double targetAspect = targetW / targetH;
-
-        double sourceW = backdrop.getWidth();
-        double sourceH = backdrop.getHeight();
-        double sourceX = 0;
+        double scaledWorldWidth = targetH * (backdrop.getWidth() / backdrop.getHeight());
+        double scrollRatio = scaledWorldWidth <= targetW ? 0 : cameraX / (scaledWorldWidth - targetW);
+        double sourceW = backdrop.getWidth() * (targetW / scaledWorldWidth);
+        double sourceX = scrollRatio * (backdrop.getWidth() - sourceW);
         double sourceY = 0;
-
-        if (imageAspect > targetAspect) {
-            sourceW = sourceH * targetAspect;
-            sourceX = (backdrop.getWidth() - sourceW) / 2.0;
-        } else {
-            sourceH = sourceW / targetAspect;
-            sourceY = Math.max(0, backdrop.getHeight() - sourceH);
-        }
+        double sourceH = backdrop.getHeight();
 
         gc.drawImage(backdrop, sourceX, sourceY, sourceW, sourceH, targetX, targetY, targetW, targetH);
         gc.setFill(Color.color(0, 0, 0, 0.08));
@@ -804,7 +853,7 @@ public class GameScene {
     private double getAimAngle() {
         double originX = player.getCenterX();
         double originY = player.getY() + player.getHeight() * 0.35;
-        double targetX = input.getMouseX();
+        double targetX = input.getMouseX() + cameraX;
         double targetY = input.getMouseY();
 
         if (targetX == 0 && targetY == 0) {
@@ -815,81 +864,65 @@ public class GameScene {
     }
 
     private void renderHud(StageDefinition stage) {
-        double panelY = 16;
-        double panelH = 196;
-        double leftX = 20;
-        double leftW = 700;
-        double rightW = 520;
-        double rightX = W - rightW - 20;
+        double panelY = 18;
+        double accentR = stage.tint().getRed();
+        double accentG = stage.tint().getGreen();
+        double accentB = stage.tint().getBlue();
 
-        drawPixelPanel(leftX, panelY, leftW, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
-                Color.color(0.10, 0.76, 0.42));
-        drawPixelPanel(rightX, panelY, rightW, panelH, Color.color(0.01, 0.03, 0.05, 0.95),
-                Color.color(0.10, 0.76, 0.42));
+        drawPixelPanel(20, panelY, 320, 104, Color.color(0.01, 0.03, 0.05, 0.84),
+                Color.color(0.10, 0.76, 0.42, 0.72));
+        drawPixelPanel(W / 2.0 - 190, panelY, 380, 52, Color.color(0.01, 0.03, 0.05, 0.78),
+                Color.color(accentR, accentG, accentB, 0.70));
+        drawPixelPanel(W - 224, panelY, 204, 104, Color.color(0.01, 0.03, 0.05, 0.84),
+                Color.color(0.10, 0.76, 0.42, 0.72));
 
-        drawPixelPanel(leftX + 410, panelY + 24, 268, 136, Color.color(0.03, 0.05, 0.07, 0.92),
-                Color.color(0.14, 0.22, 0.18, 0.92));
-        drawPixelPanel(rightX + 24, panelY + 24, rightW - 48, 88, Color.color(0.03, 0.05, 0.07, 0.92),
-                Color.color(0.14, 0.22, 0.18, 0.92));
-        drawPixelPanel(rightX + 24, panelY + 122, rightW - 48, 48, Color.color(0.03, 0.05, 0.07, 0.92),
-                Color.color(0.14, 0.22, 0.18, 0.92));
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 22));
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
         gc.setFill(Color.WHITE);
-        gc.fillText(character.getName(), leftX + 18, panelY + 34);
+        gc.fillText(character.getName(), 36, panelY + 28);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        gc.setFill(Color.color(0.74, 0.86, 0.80));
+        gc.fillText(character.getTitle() + " | " + weapon.getName(), 36, panelY + 48);
+
+        gc.setFill(Color.WHITE);
+        gc.fillText("HP " + hp + "/" + maxHp, 36, panelY + 68);
+        drawBar(36, panelY + 74, 288, 10, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
+
+        gc.setFill(Color.WHITE);
+        gc.fillText("SKILL " + getAbilityStatusText(), 36, panelY + 96);
+        drawBar(36, panelY + 102, 288, 10, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText(character.getTitle() + " | " + weapon.getName(), leftX + 18, panelY + 58);
-        gc.fillText("CHAPTER", leftX + 18, panelY + 86);
-        gc.setFill(Color.WHITE);
-        gc.fillText(stage.name().toUpperCase(), leftX + 110, panelY + 86);
+        gc.fillText(stage.name().toUpperCase(), W / 2.0 - textWidth(stage.name(), 12) / 2, panelY + 20);
 
-        gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText("OBJECTIVE", leftX + 18, panelY + 110);
-        gc.setFill(Color.WHITE);
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-        wrapText(stage.objective().toUpperCase(), leftX + 18, panelY + 128, 360, 16);
-
-        gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText("STAGE FEEL", leftX + 18, panelY + 160);
-        gc.setFill(Color.color(0.82, 0.88, 0.86));
         gc.setFont(Font.font("Monospaced", 11));
-        wrapText(stage.moodText().toUpperCase(), leftX + 18, panelY + 176, 360, 15);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-        gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText("VITALS", leftX + 430, panelY + 44);
         gc.setFill(Color.WHITE);
-        gc.fillText("HP " + hp + "/" + maxHp, leftX + 430, panelY + 66);
-        drawBar(leftX + 430, panelY + 74, 220, 14, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
-        gc.fillText("SKILL " + getAbilityStatusText(), leftX + 430, panelY + 104);
-        drawBar(leftX + 430, panelY + 112, 220, 14, getAbilityMeterFill(), Color.color(0.22, 0.7, 0.92));
-        gc.fillText("WEAPON " + weapon.getName().toUpperCase(), leftX + 430, panelY + 144);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
-        gc.setFill(Color.color(0.74, 0.86, 0.80));
-        gc.fillText("COMBAT READOUT", rightX + 42, panelY + 44);
+        String objective = stage.objective().toUpperCase();
+        gc.fillText(objective, W / 2.0 - textWidth(objective, 11) / 2, panelY + 38);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.WHITE);
-        gc.fillText("Damage  " + getCurrentShotDamage(), rightX + 42, panelY + 70);
-        gc.fillText("Move    " + character.getMovementSpeed() + "  (" + (int) character.getMovementSpeedPx() + " px/s)", rightX + 42, panelY + 92);
-        gc.fillText("Ammo    " + ammo + "/" + weapon.getMagazineSize(), rightX + 270, panelY + 70);
-        gc.fillText("Reload  " + getReloadStatusText(), rightX + 270, panelY + 92);
+        gc.fillText("AMMO", W - 204, panelY + 28);
+        gc.fillText(ammo + "/" + weapon.getMagazineSize(), W - 204, panelY + 48);
+        gc.fillText("RELOAD", W - 204, panelY + 72);
+        gc.fillText(getReloadStatusText(), W - 204, panelY + 92);
 
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
-        gc.setFill(Color.color(0.15, 0.9, 0.4));
-        gc.fillText(getBuffStatusText(), rightX + 42, panelY + 152);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-        gc.setFill(Color.color(0.82, 0.88, 0.86));
-        gc.fillText("MOVE A/D OR ARROWS   JUMP SPACE   FIRE MOUSE", rightX + 42, panelY + 190);
-        gc.fillText("SKILL Q   RELOAD R   EXIT MARKER TO ADVANCE", rightX + 42, panelY + 206);
+        String buffText = getBuffStatusText();
+        if (buffText != null) {
+            drawPixelPanel(20, H - 74, 260, 38, Color.color(0.01, 0.03, 0.05, 0.82),
+                    Color.color(0.10, 0.76, 0.42, 0.70));
+            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+            gc.setFill(Color.color(0.15, 0.9, 0.4));
+            gc.fillText(buffText, 34, H - 50);
+        }
 
         if (stageExit.isActive()) {
+            drawPixelPanel(W - 220, H - 74, 200, 38, Color.color(0.01, 0.03, 0.05, 0.82),
+                    Color.color(0.10, 0.76, 0.42, 0.70));
+            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
             gc.setFill(Color.color(0.15, 0.9, 0.4));
-            gc.fillText("EXIT OPEN", rightX + rightW - 132, panelY + 190);
+            gc.fillText("EXIT OPEN  MOVE INTO MARKER", W - 204, H - 50);
         }
     }
 
@@ -1021,9 +1054,9 @@ public class GameScene {
 
     private String getAbilityStatusText() {
         if (abilityCooldown <= 0) {
-            return "Skill READY";
+            return "READY";
         }
-        return "Skill " + String.format("%.1fs", abilityCooldown);
+        return String.format("%.1fs", abilityCooldown);
     }
 
     private String getReloadStatusText() {
@@ -1033,7 +1066,7 @@ public class GameScene {
     private String getBuffStatusText() {
         if (hemorrhageTimer <= 0 && suppressTimer <= 0 && overdriveTimer <= 0
                 && overloadShots <= 0 && focusShots <= 0) {
-            return "BUFFS  NONE";
+            return null;
         }
 
         StringBuilder line = new StringBuilder("BUFFS ");
