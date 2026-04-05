@@ -1,7 +1,7 @@
 package org.example.player;
 
 import org.example.weapons.Weapon;
-import org.example.weapons.WeaponFactory;
+import org.example.weapons.WeaponCatalog;
 import org.example.weapons.WeaponType;
 
 /**
@@ -22,7 +22,9 @@ public enum CharacterType {
             130,
             100,
             "Hemorrhage",
-            6.0
+            6.0,
+            "character.joseph",
+            false
     ),
     IBEN_ANOOS(
             "Iben Anoos",
@@ -33,7 +35,9 @@ public enum CharacterType {
             110,
             70,
             "Suppress",
-            6.0
+            6.0,
+            "character.iben",
+            false
     ),
     ILDE_JAN_FIGUERAS(
             "Ilde Jan Figueras",
@@ -44,7 +48,9 @@ public enum CharacterType {
             80,
             130,
             "Overdrive",
-            5.0
+            5.0,
+            "character.ilde",
+            false
     ),
     GAILE_AMOLONG(
             "Gaille Amolong",
@@ -55,7 +61,9 @@ public enum CharacterType {
             180,
             80,
             "Overload",
-            6.0
+            6.0,
+            "character.gaille",
+            true
     ),
     JAMUEL_BACUS(
             "Jamuel Bacus",
@@ -66,27 +74,31 @@ public enum CharacterType {
             250,
             65,
             "Focus",
-            6.0
+            6.0,
+            "character.jamuel",
+            false
     );
 
     public static final double BASE_MOVE_SPEED = 260.0;
     public static final double BASE_JUMP = -520.0;
 
-    public final String name;
-    public final String title;
-    public final String lore;
-
+    private final String name;
+    private final String title;
+    private final String lore;
     private final WeaponType assignedWeaponType;
     private final int health;
     private final int damage;
     private final int movementSpeed;
     private final String skillName;
     private final double skillCooldown;
+    private final String spriteAssetId;
+    private final boolean femaleVoice;
 
     CharacterType(String name, String title, String lore,
                   WeaponType assignedWeaponType,
                   int health, int damage, int movementSpeed,
-                  String skillName, double skillCooldown) {
+                  String skillName, double skillCooldown,
+                  String spriteAssetId, boolean femaleVoice) {
         this.name = name;
         this.title = title;
         this.lore = lore;
@@ -96,6 +108,20 @@ public enum CharacterType {
         this.movementSpeed = movementSpeed;
         this.skillName = skillName;
         this.skillCooldown = skillCooldown;
+        this.spriteAssetId = spriteAssetId;
+        this.femaleVoice = femaleVoice;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getLore() {
+        return lore;
     }
 
     public int getHealth() {
@@ -122,6 +148,14 @@ public enum CharacterType {
         return skillCooldown;
     }
 
+    public String getSpriteAssetId() {
+        return spriteAssetId;
+    }
+
+    public boolean isFemaleVoice() {
+        return femaleVoice;
+    }
+
     public WeaponType getAssignedWeaponType() {
         return assignedWeaponType;
     }
@@ -137,6 +171,6 @@ public enum CharacterType {
     }
 
     public Weapon createWeapon() {
-        return WeaponFactory.create(assignedWeaponType);
+        return WeaponCatalog.create(assignedWeaponType);
     }
 }

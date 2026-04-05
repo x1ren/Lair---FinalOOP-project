@@ -47,17 +47,34 @@ Contains the playable character data and fixed loadout stats:
 
 - `CharacterType`
 
+### `org.example.runtime`
+
+Contains the shared runtime context and app-level scene routing:
+
+- `GameContext`
+
+### `org.example.assets`
+
+Contains runtime asset loading, sprite helpers, and background preloading:
+
+- `AssetRegistry`
+- `AssetPreloader`
+- `SpriteSheet`
+- `SpriteSet`
+
+### `org.example.audio`
+
+Contains lightweight sound playback coordination:
+
+- `AudioManager`
+
 ### `org.example.weapons`
 
-Contains the weapon hierarchy and weapon factory:
+Contains the immutable weapon data model:
 
 - `Weapon`
-- `AssaultRifle`
-- `SMG`
-- `Shotgun`
-- `Sniper`
-- `LMG`
-- `WeaponFactory`
+- `WeaponCatalog`
+- `WeaponType`
 
 ### `org.example.gameplay`
 
@@ -84,8 +101,9 @@ Contains reusable engine support:
 The project already demonstrates GUI and OOP in a meaningful way:
 
 - JavaFX scenes provide the GUI flow
-- object-oriented modeling is used for players, weapons, enemies, stages, and managers
-- inheritance, abstraction, encapsulation, polymorphism, and generics are present in the code
+- runtime asset loading is centralized instead of being scattered in scenes
+- object-oriented modeling is used for players, weapons, enemies, stages, assets, and managers
+- inheritance, abstraction, encapsulation, polymorphism, and generics are present in practical, limited ways
 
 ## Documentation Direction
 

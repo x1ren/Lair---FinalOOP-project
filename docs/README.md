@@ -2,6 +2,21 @@
 
 This folder keeps the project documentation high-level and presentation-ready.
 
+## Run The Game
+
+From the project root, start the game with:
+
+```bash
+mvn javafx:run
+```
+
+Requirements:
+
+- Java 21
+- Maven 3.9+ recommended
+
+If Maven dependencies are not downloaded yet, the first run may take a bit longer.
+
 ## Files
 
 - [use-case-diagram.puml](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/docs/use-case-diagram.puml)

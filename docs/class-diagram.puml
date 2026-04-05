@@ -16,6 +16,22 @@ package "org.example.player" {
   enum CharacterType
 }
 
+package "org.example.runtime" {
+  class GameContext
+}
+
+package "org.example.assets" {
+  class AssetRegistry
+  class AssetPreloader
+  class SpriteSheet
+  class SpriteSet
+  enum AnimationState
+}
+
+package "org.example.audio" {
+  class AudioManager
+}
+
 package "org.example.engines" {
   abstract class GameLoop
   class InputHandler
@@ -34,17 +50,18 @@ package "org.example.gameplay" {
 }
 
 package "org.example.weapons" {
-  abstract class Weapon
-  class AssaultRifle
-  class SMG
-  class Shotgun
-  class Sniper
-  class LMG
-  class WeaponFactory
+  class Weapon
+  class WeaponCatalog
   enum WeaponType
 }
 
-Main --> IntroScene
+Main --> GameContext
+GameContext --> IntroScene
+GameContext --> CharacterSelectScene
+GameContext --> GameScene
+GameContext --> AssetRegistry
+GameContext --> AudioManager
+GameContext --> AssetPreloader
 IntroScene --> CharacterSelectScene
 CharacterSelectScene --> GameScene
 
@@ -60,6 +77,9 @@ GameScene --> PlatformTile
 GameScene --> StageCatalog
 GameScene --> StageDefinition
 GameScene --> EntityManager
+GameScene --> AssetRegistry
+GameScene --> AudioManager
+GameScene --> SpriteSet
 
 PlayerActor --|> GameObject
 EnemyActor --|> GameObject
@@ -68,16 +88,13 @@ PlatformTile --|> GameObject
 
 EntityManager ..> GameObject
 EnemyActor --> PlayerActor
-CharacterType --> WeaponFactory
+CharacterType --> WeaponCatalog
 CharacterType --> WeaponType
 
-AssaultRifle --|> Weapon
-SMG --|> Weapon
-Shotgun --|> Weapon
-Sniper --|> Weapon
-LMG --|> Weapon
-WeaponFactory --> Weapon
-WeaponFactory --> WeaponType
+AssetRegistry --> SpriteSheet
+SpriteSet --> SpriteSheet
+SpriteSet --> AnimationState
+WeaponCatalog --> Weapon
 Weapon --> WeaponType
 
 @enduml

@@ -2,6 +2,8 @@ package org.example.gameplay;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import org.example.assets.AnimationState;
+import org.example.assets.SpriteSet;
 
 public class PlayerActor extends GameObject {
 
@@ -10,6 +12,10 @@ public class PlayerActor extends GameObject {
     private int facing = 1;
     private boolean onGround;
     private Color auraColor = Color.DEEPSKYBLUE;
+    private SpriteSet spriteSet;
+    private double animationTime;
+    private double hitTimer;
+    private boolean defeated;
 
     public PlayerActor(double x, double y, double width, double height) {
         super(x, y, width, height);
@@ -51,6 +57,23 @@ public class PlayerActor extends GameObject {
         this.auraColor = auraColor;
     }
 
+    public void setSpriteSet(SpriteSet spriteSet) {
+        this.spriteSet = spriteSet;
+    }
+
+    public void updateAnimation(double dt) {
+        animationTime += dt;
+        hitTimer = Math.max(0, hitTimer - dt);
+    }
+
+    public void triggerHit() {
+        hitTimer = 0.22;
+    }
+
+    public void markDefeated() {
+        defeated = true;
+    }
+
     public void step(double dt) {
         moveBy(vx * dt, vy * dt);
     }
@@ -69,25 +92,35 @@ public class PlayerActor extends GameObject {
     public void render(GraphicsContext gc) {
         double x = Math.round(getX());
         double y = Math.round(getY());
-        double pixel = 4;
-
         gc.setFill(Color.color(auraColor.getRed(), auraColor.getGreen(), auraColor.getBlue(), 0.22));
         gc.fillRect(x - 8, y - 8, getWidth() + 16, getHeight() + 16);
 
+        if (spriteSet != null) {
+            spriteSet.draw(gc, resolveAnimationState(), animationTime, x - 10, y - 6, 64, 64, facing < 0);
+            return;
+        }
+
         gc.setFill(Color.color(0.80, 0.86, 0.90));
-        gc.fillRect(x + pixel * 2, y, pixel * 6, pixel * 3);
-        gc.fillRect(x + pixel, y + pixel * 3, pixel * 8, pixel * 7);
+        gc.fillRect(x + 8, y, getWidth() - 16, 12);
+        gc.fillRect(x + 4, y + 12, getWidth() - 8, getHeight() - 12);
+    }
 
-        gc.setFill(Color.color(0.18, 0.20, 0.24));
-        gc.fillRect(x + pixel * 2, y + pixel * 4, pixel * 2, pixel * 2);
-        gc.fillRect(x + pixel * 6, y + pixel * 4, pixel * 2, pixel * 2);
-
-        gc.setFill(Color.color(0.64, 0.70, 0.76));
-        gc.fillRect(x + pixel * 2, y + pixel * 10, pixel * 2, pixel * 4);
-        gc.fillRect(x + pixel * 6, y + pixel * 10, pixel * 2, pixel * 4);
-
-        gc.setFill(Color.color(auraColor.getRed(), auraColor.getGreen(), auraColor.getBlue(), 0.95));
-        gc.fillRect(x + (facing > 0 ? pixel * 8 : -pixel * 2), y + pixel * 5, pixel * 4, pixel);
-        gc.fillRect(x + (facing > 0 ? pixel * 10 : -pixel * 4), y + pixel * 4, pixel * 2, pixel * 3);
+    private AnimationState resolveAnimationState() {
+        if (defeated) {
+            return AnimationState.DEATH;
+        }
+        if (hitTimer > 0) {
+            return AnimationState.HIT;
+        }
+        if (!onGround && vy < 0) {
+            return AnimationState.JUMP;
+        }
+        if (!onGround) {
+            return AnimationState.FALL;
+        }
+        if (Math.abs(vx) > 10) {
+            return AnimationState.WALK;
+        }
+        return AnimationState.IDLE;
     }
 }
