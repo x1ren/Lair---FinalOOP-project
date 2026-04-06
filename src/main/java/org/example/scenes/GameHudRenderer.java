@@ -8,6 +8,8 @@ import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterType;
 import org.example.weapons.Weapon;
 
+import java.util.List;
+
 final class GameHudRenderer {
 
     private final GraphicsContext gc;
@@ -23,15 +25,20 @@ final class GameHudRenderer {
     }
 
     void renderHud(StageDefinition stage, CharacterType character, Weapon weapon,
-                   int hp, int maxHp, int ammo, double abilityFill,
-                   String abilityStatus, String reloadStatus, String buffText,
+                   int hp, int maxHp, int ammo,
+                   String skillName, String skillEffectSummary, String skillKeyHint,
+                   double abilityFill, String abilityStatus,
+                   String reloadStatus,
+                   List<String> activeEffectLines,
+                   double stageDamageMultiplier,
                    boolean exitOpen) {
         double panelY = 18;
         double accentR = stage.tint().getRed();
         double accentG = stage.tint().getGreen();
         double accentB = stage.tint().getBlue();
 
-        drawPixelPanel(20, panelY, 320, 104, Color.color(0.01, 0.03, 0.05, 0.84),
+        double leftPanelHeight = 136;
+        drawPixelPanel(20, panelY, 320, leftPanelHeight, Color.color(0.01, 0.03, 0.05, 0.84),
                 Color.color(0.10, 0.76, 0.42, 0.72));
         drawPixelPanel(viewportWidth / 2.0 - 190, panelY, 380, 52, Color.color(0.01, 0.03, 0.05, 0.78),
                 Color.color(accentR, accentG, accentB, 0.70));
@@ -47,12 +54,22 @@ final class GameHudRenderer {
         gc.fillText(character.getTitle() + " | " + weapon.getName(), 36, panelY + 48);
 
         gc.setFill(Color.WHITE);
-        gc.fillText("HP " + hp + "/" + maxHp, 36, panelY + 68);
-        drawBar(36, panelY + 74, 288, 10, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
+        gc.fillText("HP " + hp + "/" + maxHp, 36, panelY + 64);
+        drawBar(36, panelY + 70, 288, 10, hp / (double) maxHp, Color.color(0.88, 0.2, 0.2));
 
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        gc.setFill(Color.color(0.35, 0.95, 0.55));
+        gc.fillText(skillName.toUpperCase() + "  " + skillKeyHint, 36, panelY + 90);
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
         gc.setFill(Color.WHITE);
-        gc.fillText("SKILL " + abilityStatus, 36, panelY + 96);
-        drawBar(36, panelY + 102, 288, 10, abilityFill, Color.color(0.22, 0.7, 0.92));
+        String skillRight = abilityStatus;
+        gc.fillText(skillRight, 36 + 288 - textWidth(skillRight, 11), panelY + 90);
+
+        gc.setFont(Font.font("Monospaced", 9));
+        gc.setFill(Color.color(0.65, 0.72, 0.68));
+        wrapTextHud(skillEffectSummary, 36, panelY + 104, 288, 11);
+
+        drawBar(36, panelY + 124, 288, 10, abilityFill, Color.color(0.22, 0.7, 0.92));
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.color(0.74, 0.86, 0.80));
@@ -70,20 +87,80 @@ final class GameHudRenderer {
         gc.fillText("RELOAD", viewportWidth - 204, panelY + 72);
         gc.fillText(reloadStatus, viewportWidth - 204, panelY + 92);
 
-        if (buffText != null) {
-            drawPixelPanel(20, viewportHeight - 74, 260, 38, Color.color(0.01, 0.03, 0.05, 0.82),
-                    Color.color(0.10, 0.76, 0.42, 0.70));
-            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-            gc.setFill(Color.color(0.15, 0.9, 0.4));
-            gc.fillText(buffText, 34, viewportHeight - 50);
-        }
+        renderActiveEffectsPanel(activeEffectLines, stageDamageMultiplier);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
+        gc.setFill(Color.color(0.55, 0.62, 0.58));
+        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  R reload  |  Space jump",
+                20, viewportHeight - 12);
 
         if (exitOpen) {
-            drawPixelPanel(viewportWidth - 220, viewportHeight - 74, 200, 38, Color.color(0.01, 0.03, 0.05, 0.82),
+            drawPixelPanel(viewportWidth - 220, viewportHeight - 88, 200, 38, Color.color(0.01, 0.03, 0.05, 0.82),
                     Color.color(0.10, 0.76, 0.42, 0.70));
             gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
             gc.setFill(Color.color(0.15, 0.9, 0.4));
-            gc.fillText("EXIT OPEN  MOVE INTO MARKER", viewportWidth - 204, viewportHeight - 50);
+            gc.fillText("EXIT OPEN  MOVE INTO MARKER", viewportWidth - 204, viewportHeight - 64);
+        }
+    }
+
+    private void renderActiveEffectsPanel(List<String> activeEffectLines, double stageDamageMultiplier) {
+        int effectCount = activeEffectLines == null ? 0 : activeEffectLines.size();
+        double lineH = 13;
+        double headerH = 16;
+        double stageLineH = 14;
+        double hintLineH = effectCount == 0 ? 14 : 0;
+        double padY = 10;
+        double panelH = padY * 2 + headerH + stageLineH + hintLineH + effectCount * lineH + (effectCount > 0 ? 4 : 0);
+        double panelY = viewportHeight - panelH - 22;
+        double panelW = 340;
+        double panelX = 20;
+
+        drawPixelPanel(panelX, panelY, panelW, panelH, Color.color(0.01, 0.03, 0.05, 0.84),
+                Color.color(0.10, 0.76, 0.42, 0.72));
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 10));
+        gc.setFill(Color.color(0.55, 0.78, 0.62));
+        gc.fillText("ACTIVE EFFECTS & SCALING", panelX + 14, panelY + padY + 10);
+
+        double y = panelY + padY + headerH + 4;
+        gc.setFont(Font.font("Monospaced", 9));
+        gc.setFill(Color.color(0.75, 0.82, 0.78));
+        gc.fillText(String.format("Stage damage multiplier: x%.2f", stageDamageMultiplier), panelX + 14, y);
+        y += stageLineH;
+
+        if (activeEffectLines != null) {
+            gc.setFill(Color.color(0.2, 0.92, 0.45));
+            for (String line : activeEffectLines) {
+                gc.fillText(line, panelX + 14, y);
+                y += lineH;
+            }
+        }
+
+        if (effectCount == 0) {
+            gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
+            gc.setFill(Color.color(0.45, 0.5, 0.48));
+            gc.fillText("(No timed buff — press Q when skill is READY)", panelX + 14, y);
+        }
+    }
+
+    private void wrapTextHud(String text, double x, double y, double maxWidth, double lineHeight) {
+        String[] words = text.split(" ");
+        StringBuilder line = new StringBuilder();
+        double currentY = y;
+
+        for (String word : words) {
+            String nextLine = line.isEmpty() ? word : line + " " + word;
+            if (textWidth(nextLine, 9) > maxWidth) {
+                gc.fillText(line.toString(), x, currentY);
+                currentY += lineHeight;
+                line = new StringBuilder(word);
+            } else {
+                line = new StringBuilder(nextLine);
+            }
+        }
+
+        if (!line.isEmpty()) {
+            gc.fillText(line.toString(), x, currentY);
         }
     }
 

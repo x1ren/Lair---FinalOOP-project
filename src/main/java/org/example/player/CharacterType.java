@@ -144,6 +144,17 @@ public enum CharacterType {
         return skillName;
     }
 
+    /** One-line HUD hint for what the skill does while active or primed. */
+    public String getSkillEffectSummary() {
+        return switch (this) {
+            case JOSEPH_JIMENEZ -> "While active: hits apply bleed damage over time.";
+            case IBEN_ANOOS -> "While active: hits slow enemies; bonus vs slowed targets.";
+            case ILDE_JAN_FIGUERAS -> "While active: faster move, fire rate, and bonus damage.";
+            case GAILE_AMOLONG -> "Next shotgun blasts: extra pellets; overload reduces damage taken.";
+            case JAMUEL_BACUS -> "While primed: focus shot deals more damage (later in window = stronger).";
+        };
+    }
+
     public double getSkillCooldown() {
         return skillCooldown;
     }
@@ -172,5 +183,10 @@ public enum CharacterType {
 
     public Weapon createWeapon() {
         return WeaponCatalog.create(assignedWeaponType);
+    }
+
+    /** Data-driven combat tuning (abilities, DoT, scaling hooks). */
+    public CharacterCombatProfile getCombatProfile() {
+        return CharacterCombatProfiles.forCharacter(this);
     }
 }

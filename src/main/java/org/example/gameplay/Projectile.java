@@ -7,32 +7,54 @@ public class Projectile extends GameObject {
 
     private final double vx;
     private final double vy;
-    private final int damage;
+    private final HitPayload hitPayload;
+    private final BleedConfig bleedConfig;
+    private final SlowConfig slowConfig;
     private final Color color;
     private final double radius;
-    private final int bleedDamage;
-    private final double slowDuration;
     private double life;
 
     public Projectile(double x, double y, double vx, double vy, int damage, Color color) {
-        this(x, y, vx, vy, damage, color, 0, 0);
+        this(x, y, vx, vy, HitPayload.ofDamage(damage), color, BleedConfig.legacyDefaults(), SlowConfig.none());
     }
 
     public Projectile(double x, double y, double vx, double vy, int damage, Color color,
                       int bleedDamage, double slowDuration) {
+        this(x, y, vx, vy,
+                HitPayload.withBleedSlow(damage, bleedDamage, slowDuration),
+                color,
+                BleedConfig.legacyDefaults(),
+                SlowConfig.none());
+    }
+
+    public Projectile(double x, double y, double vx, double vy,
+                      HitPayload hitPayload, Color color,
+                      BleedConfig bleedConfig, SlowConfig slowConfig) {
         super(x - 4, y - 4, 8, 8);
         this.vx = vx;
         this.vy = vy;
-        this.damage = damage;
+        this.hitPayload = hitPayload;
         this.color = color;
         this.radius = 4;
-        this.bleedDamage = bleedDamage;
-        this.slowDuration = slowDuration;
+        this.bleedConfig = bleedConfig == null ? BleedConfig.legacyDefaults() : bleedConfig;
+        this.slowConfig = slowConfig == null ? SlowConfig.none() : slowConfig;
         this.life = 1.7;
     }
 
+    public HitPayload getHitPayload() {
+        return hitPayload;
+    }
+
+    public BleedConfig getBleedConfig() {
+        return bleedConfig;
+    }
+
+    public SlowConfig getSlowConfig() {
+        return slowConfig;
+    }
+
     public int getDamage() {
-        return damage;
+        return hitPayload.getDirectDamage();
     }
 
     public double getRadius() {
@@ -40,11 +62,11 @@ public class Projectile extends GameObject {
     }
 
     public int getBleedDamage() {
-        return bleedDamage;
+        return hitPayload.bleedTotalOrZero();
     }
 
     public double getSlowDuration() {
-        return slowDuration;
+        return hitPayload.slowDurationOrZero();
     }
 
     public double getDrawX() {

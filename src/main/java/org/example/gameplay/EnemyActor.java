@@ -7,6 +7,8 @@ import org.example.assets.SpriteSheet;
 
 public class EnemyActor extends GameObject {
 
+    private static final double DEFAULT_SLOW_MOVE_FACTOR = 0.55;
+
     private final String name;
     private int hp;
     private final int maxHp;
@@ -18,9 +20,12 @@ public class EnemyActor extends GameObject {
     private boolean onGround;
     private double jumpCooldown;
     private double slowTimer;
+    private int slowStack;
     private int bleedTicks;
     private int bleedTickDamage;
     private double bleedTickTimer;
+    private double bleedTickIntervalSec = 0.35;
+    private final EnemyTuningState tuningState = new EnemyTuningState();
     private SpriteSheet spriteSheet;
     private AnimationStrip idleStrip;
     private AnimationStrip walkStrip;
@@ -89,6 +94,14 @@ public class EnemyActor extends GameObject {
         this.onGround = onGround;
     }
 
+    public double getSlowTimer() {
+        return slowTimer;
+    }
+
+    public EnemyTuningState getTuningState() {
+        return tuningState;
+    }
+
     public void takeDamage(int damage) {
         hp -= damage;
     }
@@ -129,15 +142,42 @@ public class EnemyActor extends GameObject {
         jumpCooldown = 0.9;
     }
 
-    public void applySlow(double duration) {
-        slowTimer = Math.max(slowTimer, duration);
+    public void applySlow(double baseDuration, SlowConfig config) {
+        if (slowTimer <= 0) {
+            slowStack = 0;
+        }
+        slowStack++;
+        double d = baseDuration;
+        if (slowStack > config.diminishAfterStacks()) {
+            d *= config.diminishFactor();
+        }
+        slowTimer = Math.max(slowTimer, d);
     }
 
-    public void applyBleed(int totalDamage) {
-        bleedTicks += 3;
-        bleedTickDamage = Math.max(bleedTickDamage, Math.max(1, totalDamage / 3));
+    public void applyBleed(int totalDamage, BleedConfig config) {
+        bleedTicks += config.tickCount();
+        int perTick = Math.max(1, totalDamage / config.tickCount());
+        perTick = Math.min(config.tickDamageCap(), perTick);
+        bleedTickDamage = Math.max(bleedTickDamage, perTick);
+        bleedTickIntervalSec = config.tickIntervalSec();
         if (bleedTickTimer <= 0) {
-            bleedTickTimer = 0.35;
+            bleedTickTimer = bleedTickIntervalSec;
+        }
+    }
+
+    public void applyHitEffects(HitPayload payload, BleedConfig bleedCfg, SlowConfig slowCfg) {
+        takeDamage(payload.getDirectDamage());
+        for (StatusApplication s : payload.getStatuses()) {
+            switch (s.type()) {
+                case BLEED -> {
+                    applyBleed((int) Math.round(s.magnitude()), bleedCfg);
+                    tuningState.onBleedApplied();
+                }
+                case SLOW -> {
+                    applySlow(s.magnitude(), slowCfg);
+                    tuningState.onSlowApplied();
+                }
+            }
         }
     }
 
@@ -147,7 +187,14 @@ public class EnemyActor extends GameObject {
 
     public void updateStatusEffects(double dt) {
         animationTime += dt;
+        tuningState.update(dt);
+
+        double prevSlow = slowTimer;
         slowTimer = Math.max(0, slowTimer - dt);
+        if (prevSlow > 0 && slowTimer == 0) {
+            slowStack = 0;
+        }
+
         jumpCooldown = Math.max(0, jumpCooldown - dt);
 
         if (bleedTicks <= 0) {
@@ -158,22 +205,28 @@ public class EnemyActor extends GameObject {
         if (bleedTickTimer <= 0) {
             takeDamage(bleedTickDamage);
             bleedTicks--;
-            bleedTickTimer = 0.35;
+            bleedTickTimer = bleedTickIntervalSec;
             if (bleedTicks <= 0) {
                 bleedTickDamage = 0;
             }
         }
     }
 
-    public void chase(PlayerActor player, double dt, double minX, double maxX) {
+    public void chase(PlayerActor player, double dt, double minX, double maxX, double slowMoveFactor) {
         double direction = Math.signum(player.getCenterX() - getCenterX());
-        double effectiveSpeed = slowTimer > 0 ? speed * 0.55 : speed;
+        double tuningMult = tuningState.moveMultiplier();
+        double effectiveSpeed = slowTimer > 0 ? speed * slowMoveFactor * tuningMult : speed * tuningMult;
         moving = Math.abs(direction) > 0;
         if (direction != 0) {
             facing = direction < 0 ? -1 : 1;
         }
         moveBy(direction * effectiveSpeed * dt, 0);
         setX(Math.max(minX, Math.min(maxX, getX())));
+    }
+
+    /** Legacy chase using default slow factor (matches profile enemy slow). */
+    public void chase(PlayerActor player, double dt, double minX, double maxX) {
+        chase(player, dt, minX, maxX, DEFAULT_SLOW_MOVE_FACTOR);
     }
 
     @Override
@@ -213,6 +266,18 @@ public class EnemyActor extends GameObject {
         if (bleedTicks > 0) {
             gc.setFill(Color.color(1.0, 0.12, 0.18, 0.24));
             gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
+        }
+
+        if (tuningState.isAdrenaline()) {
+            gc.setFill(Color.color(1.0, 0.65, 0.2, 0.22));
+            gc.fillRect(x - pixel * 2, y - pixel * 3, getWidth() + pixel * 4, pixel * 2);
+        }
+
+        if (!boss && (slowTimer > 0 || bleedTicks > 0)) {
+            gc.setFont(javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 9));
+            gc.setFill(Color.color(0.9, 0.95, 0.9));
+            String tag = (slowTimer > 0 ? "S" + slowStack : "") + (bleedTicks > 0 ? " B" + bleedTicks : "");
+            gc.fillText(tag.trim(), x + 2, y - pixel * 3);
         }
 
         if (boss) {
