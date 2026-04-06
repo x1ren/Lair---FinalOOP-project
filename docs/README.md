@@ -17,6 +17,19 @@ Requirements:
 
 If Maven dependencies are not downloaded yet, the first run may take a bit longer.
 
+## Controls (in-game)
+
+| Key | Action |
+|-----|--------|
+| Move | `A` `D` or arrow keys |
+| Shoot | Left mouse button |
+| **Skill** | **`Q`** (per character: Hemorrhage, Suppress, Overdrive, Overload, Focus) |
+| Reload | `R` |
+| Jump | `Space` |
+| Menu | `Esc` (back to character select) |
+
+The HUD shows the **skill name**, **`[Q]`** hint, cooldown (`READY` or seconds), a short **effect summary**, and an **Active effects & scaling** panel (stage damage multiplier plus any buffs in progress). See [system-overview.md](system-overview.md) for packages and architecture.
+
 ## Files
 
 - [use-case-diagram.puml](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/docs/use-case-diagram.puml)

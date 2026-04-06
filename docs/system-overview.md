@@ -45,7 +45,27 @@ Contains the JavaFX scenes that represent the game flow:
 
 Contains the playable character data and fixed loadout stats:
 
-- `CharacterType`
+- `CharacterType` (base stats, weapon assignment, skill name, `getSkillEffectSummary()` for HUD)
+- `CharacterCombatProfile` / `CharacterCombatProfiles` (data-driven ability tuning: bleed, slow, overdrive, focus, overload, stage scaling hooks)
+
+### Combat UI and controls (gameplay)
+
+| Input | Action |
+|--------|--------|
+| `A` / `D` or arrow keys | Move |
+| Left mouse button | Fire |
+| `Q` | Activate skill (per survivor; see cooldown bar) |
+| `R` | Reload |
+| `Space` | Jump |
+| `Esc` | Return to character select |
+
+The in-game HUD shows:
+
+- **Skill**: skill name, `[Q]` binding, READY or cooldown time, a summary of what the skill does, and the cooldown bar.
+- **ACTIVE EFFECTS & SCALING**: current **stage damage multiplier** (later stages deal more player damage), and **timed lines** for Hemorrhage, Suppress, Overdrive, Overload, and Focus when they are active.
+- A **controls** reminder strip at the bottom of the screen.
+
+Enemy feedback: slowed enemies get a blue tint; bleeding enemies get a red edge; adaptation states may show brief highlights (see `EnemyTuningState`).
 
 ### `org.example.runtime`
 
@@ -82,8 +102,9 @@ Contains the reusable gameplay model and entity classes:
 
 - `GameObject`
 - `PlayerActor`
-- `EnemyActor`
-- `Projectile`
+- `EnemyActor` (status effects, `EnemyTuningState` for light adaptive AI)
+- `Projectile` with `HitPayload` / `StatusApplication` (bleed, slow on hit)
+- `CombatScaling` (stage-based player damage multiplier)
 - `PlatformTile`
 - `StageDefinition`
 - `EntityManager<T>`

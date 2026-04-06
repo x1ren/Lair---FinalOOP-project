@@ -14,17 +14,23 @@ import org.example.assets.SpriteSet;
 import org.example.engines.CollisionManager;
 import org.example.engines.GameLoop;
 import org.example.engines.InputHandler;
+import org.example.gameplay.BleedConfig;
+import org.example.gameplay.CombatScaling;
 import org.example.gameplay.EnemyActor;
 import org.example.gameplay.EntityManager;
+import org.example.gameplay.HitPayload;
 import org.example.gameplay.PlatformTile;
 import org.example.gameplay.PlayerActor;
 import org.example.gameplay.Projectile;
+import org.example.gameplay.SlowConfig;
 import org.example.gameplay.StageCatalog;
 import org.example.gameplay.StageDefinition;
+import org.example.player.CharacterCombatProfile;
 import org.example.player.CharacterType;
 import org.example.runtime.GameContext;
 import org.example.weapons.Weapon;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -44,6 +50,7 @@ public class GameScene {
     private final AssetRegistry assets = GameContext.assets();
 
     private final CharacterType character;
+    private final CharacterCombatProfile combatProfile;
     private final Weapon weapon;
     private final PlayerActor player;
     private final EntityManager<EnemyActor> enemies = new EntityManager<>();
@@ -89,11 +96,12 @@ public class GameScene {
 
     public GameScene(CharacterType character) {
         this.character = character;
+        this.combatProfile = character.getCombatProfile();
         this.weapon = character.createWeapon();
         this.player = new PlayerActor(120, GROUND_Y - 58, 42, 58);
         this.player.setAuraColor(weapon.getProjectileColor());
         this.player.setSpriteSet(loadPlayerSprites(character));
-        this.maxHp = character.getHealth();
+        this.maxHp = combatProfile.profileBaseMaxHp();
         this.hp = maxHp;
         this.ammo = weapon.getMagazineSize();
 
@@ -189,7 +197,7 @@ public class GameScene {
     private void handlePlayerInput() {
         double moveSpeed = character.getMovementSpeedPx();
         if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
-            moveSpeed *= 1.35;
+            moveSpeed *= combatProfile.overdriveMoveMultiplier();
         }
 
         player.setVx(0);
@@ -268,13 +276,13 @@ public class GameScene {
             if (!remove) {
                 for (EnemyActor enemy : enemies) {
                     if (CollisionManager.circleHitsRect(projectile, enemy)) {
-                        enemy.takeDamage(projectile.getDamage());
-                        if (projectile.getBleedDamage() > 0) {
-                            enemy.applyBleed(projectile.getBleedDamage());
+                        HitPayload payload = projectile.getHitPayload();
+                        int direct = payload.getDirectDamage();
+                        if (character == CharacterType.IBEN_ANOOS && suppressTimer > 0 && enemy.getSlowTimer() > 0) {
+                            direct = (int) Math.round(direct * combatProfile.suppressDamageVsSlowedMultiplier());
                         }
-                        if (projectile.getSlowDuration() > 0) {
-                            enemy.applySlow(projectile.getSlowDuration());
-                        }
+                        HitPayload adjusted = new HitPayload(direct, payload.getStatuses());
+                        enemy.applyHitEffects(adjusted, projectile.getBleedConfig(), projectile.getSlowConfig());
                         remove = true;
                         break;
                     }
@@ -295,11 +303,13 @@ public class GameScene {
             enemy.updateStatusEffects(dt);
             enemy.setAttackCooldown(Math.max(0, enemy.getAttackCooldown() - dt));
             updateEnemyPhysics(enemy, dt);
-            enemy.chase(player, dt, 20, arena.worldWidth() - enemy.getWidth() - 20);
+            enemy.chase(player, dt, 20, arena.worldWidth() - enemy.getWidth() - 20,
+                    combatProfile.enemySlowMoveFactor());
 
             if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
                 applyDamage(enemy.isBoss() ? 22 : 12);
-                enemy.setAttackCooldown(enemy.isBoss() ? 0.8 : 1.1);
+                double baseCd = enemy.isBoss() ? 0.8 : 1.1;
+                enemy.setAttackCooldown(baseCd * enemy.getTuningState().attackCooldownMultiplier());
                 enemy.setAttacking(true);
             }
         }
@@ -365,7 +375,7 @@ public class GameScene {
         ammo--;
         shootCooldown = weapon.getFireRate();
         if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
-            shootCooldown *= 0.55;
+            shootCooldown *= combatProfile.overdriveFireRateCooldownMultiplier();
         }
 
         double originX = player.getCenterX();
@@ -381,28 +391,43 @@ public class GameScene {
 
         int projectileCount = weapon.getPelletsPerShot();
         if (overloadShots > 0 && character == CharacterType.GAILE_AMOLONG) {
-            projectileCount *= 2;
+            projectileCount *= combatProfile.overloadPelletMultiplier();
         }
         int totalDamage = getCurrentShotDamage();
         int baseDamage = Math.max(1, totalDamage / projectileCount);
         int remainder = Math.max(0, totalDamage % projectileCount);
-        int bleedDamage = hemorrhageTimer > 0 && character == CharacterType.JOSEPH_JIMENEZ ? 24 : 0;
-        double slowDuration = suppressTimer > 0 && character == CharacterType.IBEN_ANOOS ? 1.8 : 0;
+
+        int bleedPerProjectile = 0;
+        if (hemorrhageTimer > 0 && character == CharacterType.JOSEPH_JIMENEZ) {
+            bleedPerProjectile = (int) Math.round(totalDamage * combatProfile.hemorrhageBleedPercentOfShotDamage());
+        }
+        double slowDuration = suppressTimer > 0 && character == CharacterType.IBEN_ANOOS
+                ? combatProfile.suppressSlowDurationSec()
+                : 0;
+
+        BleedConfig bleedConfig = new BleedConfig(
+                combatProfile.hemorrhageBleedTickCount(),
+                combatProfile.hemorrhageBleedTickIntervalSec(),
+                combatProfile.hemorrhageBleedTickDamageCap());
+        SlowConfig slowConfig = character == CharacterType.IBEN_ANOOS
+                ? new SlowConfig(combatProfile.suppressSlowDiminishAfterStacks(), combatProfile.suppressSlowDiminishFactor())
+                : SlowConfig.none();
 
         for (int i = 0; i < projectileCount; i++) {
             double spread = (random.nextDouble() - 0.5) * weapon.getSpread();
             double shotAngle = angle + spread;
             int damage = baseDamage + (i < remainder ? 1 : 0);
 
+            HitPayload payload = HitPayload.withBleedSlow(damage, bleedPerProjectile, slowDuration);
             projectiles.add(new Projectile(
                     originX,
                     originY,
                     Math.cos(shotAngle) * weapon.getProjectileSpeed(),
                     Math.sin(shotAngle) * weapon.getProjectileSpeed(),
-                    damage,
+                    payload,
                     weapon.getProjectileColor(),
-                    bleedDamage,
-                    slowDuration
+                    bleedConfig,
+                    slowConfig
             ));
         }
 
@@ -422,28 +447,28 @@ public class GameScene {
 
         switch (character) {
             case JOSEPH_JIMENEZ -> {
-                hemorrhageTimer = 5.0;
+                hemorrhageTimer = combatProfile.hemorrhageDurationSec();
                 abilityCooldown = character.getSkillCooldown();
                 setStatus("Hemorrhage active. Hits inflict bleed.");
             }
             case IBEN_ANOOS -> {
-                suppressTimer = 5.0;
+                suppressTimer = combatProfile.suppressDurationSec();
                 abilityCooldown = character.getSkillCooldown();
                 setStatus("Suppress active. Hits slow enemies.");
             }
             case ILDE_JAN_FIGUERAS -> {
-                overdriveTimer = 5.0;
+                overdriveTimer = combatProfile.overdriveDurationSec();
                 abilityCooldown = character.getSkillCooldown();
                 setStatus("Overdrive increased speed and fire rate.");
             }
             case GAILE_AMOLONG -> {
-                overloadShots = Math.max(overloadShots, 2);
+                overloadShots = Math.max(overloadShots, combatProfile.overloadChargeBudget());
                 abilityCooldown = character.getSkillCooldown();
                 setStatus("Overload primed the next 2 blasts.");
             }
             case JAMUEL_BACUS -> {
-                focusTimer = 5.0;
-                focusShots = 1;
+                focusTimer = combatProfile.focusDurationSec();
+                focusShots = combatProfile.focusShotBudget();
                 abilityCooldown = character.getSkillCooldown();
                 setStatus("Focus primed the next sniper shot.");
             }
@@ -453,14 +478,24 @@ public class GameScene {
     private int getCurrentShotDamage() {
         double damage = character.getDamage();
         if (focusShots > 0 && focusTimer > 0 && character == CharacterType.JAMUEL_BACUS) {
-            damage *= 3.0;
+            double t = focusTimer / combatProfile.focusDurationSec();
+            double focusMult = combatProfile.focusDamageMultiplierEarly()
+                    + (combatProfile.focusDamageMultiplierLate() - combatProfile.focusDamageMultiplierEarly()) * (1.0 - t);
+            damage *= focusMult;
         }
+        if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
+            damage *= combatProfile.overdriveBonusDamageMultiplier();
+        }
+        damage *= CombatScaling.playerDamageStageMultiplier(stageIndex);
         return (int) Math.round(damage);
     }
 
     private void applyDamage(int damage) {
         if (invulnerableTimer > 0) {
             return;
+        }
+        if (character == CharacterType.GAILE_AMOLONG && overloadShots > 0) {
+            damage = (int) Math.round(damage * combatProfile.overloadDamageTakenMultiplier());
         }
         hp -= damage;
         invulnerableTimer = 0.25;
@@ -623,8 +658,12 @@ public class GameScene {
         projectiles.renderAll(gc);
         enemies.renderAll(gc);
         gc.restore();
-        hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo, getAbilityMeterFill(),
-                getAbilityStatusText(), getReloadStatusText(), getBuffStatusText(), arena.exitMarker().isActive());
+        hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo,
+                character.getSkillName(), character.getSkillEffectSummary(), "[Q]",
+                getAbilityMeterFill(), getAbilityStatusText(), getReloadStatusText(),
+                getActiveEffectLines(),
+                CombatScaling.playerDamageStageMultiplier(stageIndex),
+                arena.exitMarker().isActive());
 
         if (stageIntroTimer > 0) {
             hudRenderer.renderStageIntro(stage);
@@ -670,19 +709,24 @@ public class GameScene {
         return reloadTimer > 0 ? String.format("%.1fs", reloadTimer) : "READY";
     }
 
-    private String getBuffStatusText() {
-        if (hemorrhageTimer <= 0 && suppressTimer <= 0 && overdriveTimer <= 0
-                && overloadShots <= 0 && focusShots <= 0) {
-            return null;
+    private List<String> getActiveEffectLines() {
+        List<String> lines = new ArrayList<>();
+        if (hemorrhageTimer > 0) {
+            lines.add(String.format("Hemorrhage  %.1fs  — hits apply bleed (DoT)", hemorrhageTimer));
         }
-
-        StringBuilder line = new StringBuilder("BUFFS ");
-        if (hemorrhageTimer > 0) line.append("HEMORRHAGE ");
-        if (suppressTimer > 0) line.append("SUPPRESS ");
-        if (overdriveTimer > 0) line.append("OVERDRIVE ");
-        if (overloadShots > 0) line.append("OVERLOAD x").append(overloadShots).append(" ");
-        if (focusShots > 0) line.append("FOCUS ");
-        return line.toString().trim();
+        if (suppressTimer > 0) {
+            lines.add(String.format("Suppress  %.1fs  — hits slow enemies", suppressTimer));
+        }
+        if (overdriveTimer > 0) {
+            lines.add(String.format("Overdrive  %.1fs  — move & fire rate up, bonus damage", overdriveTimer));
+        }
+        if (overloadShots > 0) {
+            lines.add(String.format("Overload  x%d charges  — next blasts: extra pellets, damage resist", overloadShots));
+        }
+        if (focusShots > 0) {
+            lines.add(String.format("Focus  %.1fs window / %d shot(s)  — sniper damage buff (wait longer = stronger)", focusTimer, focusShots));
+        }
+        return lines;
     }
 
     private void setStatus(String message) {
