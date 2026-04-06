@@ -37,7 +37,7 @@ final class GameHudRenderer {
         double accentG = stage.tint().getGreen();
         double accentB = stage.tint().getBlue();
 
-        double leftPanelHeight = 124;
+        double leftPanelHeight = 136;
         drawPixelPanel(20, panelY, 320, leftPanelHeight, Color.color(0.01, 0.03, 0.05, 0.84),
                 Color.color(0.10, 0.76, 0.42, 0.72));
         drawPixelPanel(viewportWidth / 2.0 - 190, panelY, 380, 52, Color.color(0.01, 0.03, 0.05, 0.78),
@@ -69,7 +69,7 @@ final class GameHudRenderer {
         gc.setFill(Color.color(0.65, 0.72, 0.68));
         wrapTextHud(skillEffectSummary, 36, panelY + 104, 288, 11);
 
-        drawBar(36, panelY + 112, 288, 10, abilityFill, Color.color(0.22, 0.7, 0.92));
+        drawBar(36, panelY + 124, 288, 10, abilityFill, Color.color(0.22, 0.7, 0.92));
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.color(0.74, 0.86, 0.80));
