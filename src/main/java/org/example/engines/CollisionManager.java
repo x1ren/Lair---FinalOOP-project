@@ -27,10 +27,33 @@ public final class CollisionManager {
     }
 
     public static boolean landsOnTop(GameObject actor, GameObject surface, double previousBottom) {
-        return actor.getX() + actor.getWidth() > surface.getX()
-                && actor.getX() < surface.getX() + surface.getWidth()
-                && actor.getY() + actor.getHeight() >= surface.getY()
-                && previousBottom <= surface.getY();
+        // Check if there's horizontal overlap between actor and surface
+        boolean horizontalOverlap = actor.getX() + actor.getWidth() > surface.getX()
+                && actor.getX() < surface.getX() + surface.getWidth();
+        
+        if (!horizontalOverlap) {
+            return false;
+        }
+        
+        // Current bottom position of the actor
+        double currentBottom = actor.getY() + actor.getHeight();
+        
+        // Actor should land if:
+        // 1. They were above or at the surface in the previous frame
+        // 2. They are now at or below the surface
+        // This catches actors falling onto platforms from above
+        if (previousBottom <= surface.getY() && currentBottom >= surface.getY()) {
+            return true;
+        }
+        
+        // Also land if actor is already very close to being on the surface
+        // This handles the case where actor is standing on the platform
+        // Allow a small penetration tolerance
+        if (Math.abs(currentBottom - surface.getY()) <= 2) {
+            return true;
+        }
+        
+        return false;
     }
 
     private static double clamp(double value, double min, double max) {

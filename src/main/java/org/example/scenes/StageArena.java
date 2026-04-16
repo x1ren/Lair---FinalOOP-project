@@ -18,6 +18,7 @@ final class StageArena {
 
     private double worldWidth;
     private double cameraX;
+    private int currentStageIndex;
 
     StageArena(double viewportWidth, double groundY) {
         this.viewportWidth = viewportWidth;
@@ -29,16 +30,22 @@ final class StageArena {
         platforms.clear();
         worldWidth = computeWorldWidth(backdrop);
         cameraX = 0;
+        currentStageIndex = stageIndex;
         buildStageLayout(stageIndex);
 
-        player.setX(120);
-        player.setY(groundY - player.getHeight());
+        // Get the floor Y position for this stage
+        double floorY = getFloorY(stageIndex);
+
+        // Position player on the main floor at the start
+        player.setX(100);  // Start position near the left edge
+        player.setY(floorY - player.getHeight());  // On top of the main floor platform
         player.setVx(0);
         player.setVy(0);
         player.setOnGround(true);
 
+        // Position exit marker on the floor at the end of the stage
         exitMarker.setX(worldWidth - 92);
-        exitMarker.setY(groundY - 84);
+        exitMarker.setY(floorY - exitMarker.getHeight());  // On top of the floor tiles
     }
 
     List<PlatformTile> platforms() {
@@ -86,28 +93,30 @@ final class StageArena {
         return Math.max(viewportWidth, targetH * (backdrop.getWidth() / backdrop.getHeight()));
     }
 
+    private double getFloorY(int stageIndex) {
+        // Different floor heights for different stages based on their tile positions
+        if (stageIndex == 0) {
+            // Stage 1 - Library: tiles are higher
+            return 500;
+        } else if (stageIndex == 1) {
+            // Stage 2 - Canteen: tiles are higher (same as library)
+            return 500;
+        } else if (stageIndex == 2) {
+            // Stage 3 - Gym: tiles are at the bottom
+            return 580;
+        } else {
+            // Stage 4 - Courtyard: tiles are higher
+            return 520;
+        }
+    }
+
     private void buildStageLayout(int stageIndex) {
         double w = worldWidth;
-        double lowY = 520;
-        double midY = 456;
-        double highY = 392;
-
-        platforms.add(new PlatformTile(140, lowY, 240, 18));
-        platforms.add(new PlatformTile(w * 0.28, midY, 210, 18));
-        platforms.add(new PlatformTile(w * 0.48, highY, 210, 18));
-        platforms.add(new PlatformTile(w * 0.68, midY + 24, 200, 18));
-
-        if (stageIndex == 0) {
-            platforms.add(new PlatformTile(w * 0.84, 420, 170, 18));
-        } else if (stageIndex == 1) {
-            platforms.add(new PlatformTile(w * 0.80, 370, 180, 18));
-            platforms.add(new PlatformTile(w * 0.58, 512, 170, 18));
-        } else if (stageIndex == 2) {
-            platforms.add(new PlatformTile(w * 0.75, 338, 200, 18));
-        } else {
-            platforms.add(new PlatformTile(w * 0.55, 350, 190, 18));
-            platforms.add(new PlatformTile(w * 0.86, 460, 180, 18));
-        }
+        double floorY = getFloorY(stageIndex);
+        
+        // Create a continuous floor platform that spans the entire stage width
+        double floorWidth = w - 40;  // Leave small margins on edges
+        platforms.add(new PlatformTile(20, floorY, floorWidth, 18));
     }
 
     private double clamp(double value, double min, double max) {

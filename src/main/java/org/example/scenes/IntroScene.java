@@ -365,8 +365,8 @@ public class IntroScene {
         };
 
         if (phase.equals("calm") || phase.equals("shock")) {
-            drawNamedFallbackActor("SIR KHAI", x + width * 0.14, groundY, 18, 54,
-                    Color.color(0.82, 0.86, 0.92), speaker.equals("SIR KHAI"));
+            drawSirKhaiActor(x + width * 0.14, groundY, 72, 0, 
+                    animatedFrame(8, 4.0, 0), speaker.equals("SIR KHAI"));
             for (int i = 0; i < survivors.length; i++) {
                 drawCharacterActor(survivors[i], x + width * (0.28 + i * 0.09), groundY, 72,
                         0, animatedFrame(8, 4.0, i * 0.17), false, 1.0);
@@ -410,8 +410,9 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], centerX, groundY, 70,
                         0, animatedFrame(8, 4.0, i * 0.21), false, 1.0);
             }
-            drawNamedFallbackActor("SIR KHAI", x + width * 0.76, groundY, 18, 54,
-                    Color.color(0.82, 0.90, 0.82), speaker.equals("SIR KHAI"));
+            double khaiX = x + width * 0.72;
+            drawSirKhaiActor(khaiX, groundY, 72, 0,
+                    animatedFrame(8, 4.0, 0.5), speaker.equals("SIR KHAI"));
         }
 
         if (!speaker.equals("—")) {
@@ -450,6 +451,32 @@ public class IntroScene {
         gc.save();
         gc.setGlobalAlpha(alpha);
         sheet.drawFrame(gc, row, column, snap(centerX - size / 2), snap(groundY - size), size, size, flipX);
+        gc.restore();
+    }
+
+    private void drawSirKhaiActor(double centerX, double groundY, double size,
+                                  int row, int column, boolean highlighted) {
+        SpriteSheet sheet = GameContext.assets().sheet("character.sir_khai", 32, 32);
+        if (sheet == null) {
+            System.out.println("DEBUG: Sir Khai sprite sheet is NULL!");
+            gc.save();
+            gc.setFill(Color.color(0.82, 0.86, 0.92));
+            drawSilhouette(gc, centerX, groundY, 18, 54);
+            gc.restore();
+            return;
+        }
+
+        System.out.println("DEBUG: Drawing Sir Khai - row: " + row + ", column: " + column + ", highlighted: " + highlighted);
+
+        if (highlighted) {
+            gc.save();
+            gc.setFill(Color.color(0.82, 0.90, 0.82, 0.26));
+            gc.fillRect(snap(centerX - 24), snap(groundY - size - 10), 48, size + 18);
+            gc.restore();
+        }
+
+        gc.save();
+        sheet.drawFrame(gc, row, column, snap(centerX - size / 2), snap(groundY - size), size, size, false);
         gc.restore();
     }
 

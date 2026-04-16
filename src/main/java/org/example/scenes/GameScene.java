@@ -237,13 +237,30 @@ public class GameScene {
         player.step(dt);
         player.setOnGround(false);
 
+        // First check ground collision
         if (player.getY() + player.getHeight() >= GROUND_Y) {
             player.landOn(GROUND_Y);
         }
 
+        // Then check platform collisions
         if (!player.isOnGround()) {
             for (PlatformTile platform : arena.platforms()) {
                 if (player.getVy() >= 0 && CollisionManager.landsOnTop(player, platform, previousBottom)) {
+                    player.landOn(platform.getY());
+                    break;
+                }
+            }
+        }
+
+        // Additional check: if player is very close to a platform surface, snap them to it
+        // This handles the case where player walks along a platform
+        if (!player.isOnGround() && player.getVy() >= 0) {
+            for (PlatformTile platform : arena.platforms()) {
+                double currentBottom = player.getY() + player.getHeight();
+                boolean horizontalOverlap = player.getX() + player.getWidth() > platform.getX()
+                        && player.getX() < platform.getX() + platform.getWidth();
+                // If player is within a small range of the platform top, snap them to it
+                if (horizontalOverlap && currentBottom >= platform.getY() && currentBottom <= platform.getY() + 10) {
                     player.landOn(platform.getY());
                     break;
                 }
@@ -326,13 +343,28 @@ public class GameScene {
         enemy.stepVertical(dt);
         enemy.setOnGround(false);
 
+        // Check ground collision
         if (enemy.getY() + enemy.getHeight() >= GROUND_Y) {
             enemy.landOn(GROUND_Y);
         }
 
+        // Check platform collisions
         if (!enemy.isOnGround()) {
             for (PlatformTile platform : arena.platforms()) {
                 if (enemy.getVy() >= 0 && CollisionManager.landsOnTop(enemy, platform, previousBottom)) {
+                    enemy.landOn(platform.getY());
+                    break;
+                }
+            }
+        }
+
+        // Additional check: if enemy is very close to a platform surface, snap them to it
+        if (!enemy.isOnGround() && enemy.getVy() >= 0) {
+            for (PlatformTile platform : arena.platforms()) {
+                double currentBottom = enemy.getY() + enemy.getHeight();
+                boolean horizontalOverlap = enemy.getX() + enemy.getWidth() > platform.getX()
+                        && enemy.getX() < platform.getX() + platform.getWidth();
+                if (horizontalOverlap && currentBottom >= platform.getY() && currentBottom <= platform.getY() + 10) {
                     enemy.landOn(platform.getY());
                     break;
                 }
@@ -532,7 +564,8 @@ public class GameScene {
     private void spawnMobWave(StageDefinition stage) {
         for (int i = 0; i < stage.enemyCount(); i++) {
             double x = arena.mobSpawnX(i, stage.enemyCount());
-            EnemyActor enemy = new EnemyActor(stage.enemyName(), x, GROUND_Y - 54, 42, 54,
+            // Spawn enemies high above so they fall and land on platforms
+            EnemyActor enemy = new EnemyActor(stage.enemyName(), x, 50, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
             if (!stage.enemySpriteIds().isEmpty()) {
                 applyEnemySprite(enemy, stage.enemySpriteIds().get(i % stage.enemySpriteIds().size()));
@@ -544,7 +577,8 @@ public class GameScene {
     private void spawnBoss(StageDefinition stage) {
         stageBossSpawned = true;
         double x = arena.bossSpawnX(stageIndex == stages.size() - 1);
-        EnemyActor enemy = new EnemyActor(stage.bossName(), x, GROUND_Y - 96, 74, 96,
+        // Spawn boss high above so they fall and land on platforms
+        EnemyActor enemy = new EnemyActor(stage.bossName(), x, 50, 74, 96,
                 stage.bossHealth(), stage.bossHealth(), stage.bossSpeed(), stage.tint(), true);
         if (stage.bossSpriteId() != null) {
             applyEnemySprite(enemy, stage.bossSpriteId());
@@ -648,15 +682,20 @@ public class GameScene {
         visualRenderer.renderBackground(stage, loadBackdrop(stage), arena.cameraX(), arena.worldWidth());
         gc.save();
         gc.translate(-arena.cameraX(), 0);
+        
+        // Render platform bases (shadows and legs) first
         for (PlatformTile platform : arena.platforms()) {
-            platform.render(gc);
+            platform.renderBase(gc);
         }
+        
+        // Render characters and objects on top of platform bases
         arena.exitMarker().render(gc);
+        enemies.renderAll(gc);
         player.render(gc);
         visualRenderer.renderPlayerWeapon(player, weapon, finished, victory, getAimAngle(), muzzleFlashTimer);
         visualRenderer.renderMuzzleFlash(muzzleFlashTimer, muzzleFlashX, muzzleFlashY, muzzleFlashAngle);
         projectiles.renderAll(gc);
-        enemies.renderAll(gc);
+        
         gc.restore();
         hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo,
                 character.getSkillName(), character.getSkillEffectSummary(), "[Q]",

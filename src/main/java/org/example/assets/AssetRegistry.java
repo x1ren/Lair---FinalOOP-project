@@ -43,6 +43,7 @@ public final class AssetRegistry {
         registerImage("enemy.student_m", "/assets/stages/enemies/student_m.png");
         registerImage("enemy.vendor", "/assets/stages/enemies/vendor.png");
         registerImage("enemy.janitor", "/assets/stages/enemies/janitor.png");
+        registerImage("character.sir_khai", "/assets/stages/enemies/khai_with_zombified.png");
 
         registerImage("effect.muzzle_flash", "/assets/effects/muzzle_flash.png");
         registerImage("weapon.smg", "/assets/effects/muzzle_flash.png");
