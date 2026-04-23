@@ -643,10 +643,11 @@ public class GameScene {
                 attack = null;
             }
             case "enemy.security_guard" -> {
-                sheet = assets.sheet(spriteId, 96, 128);
+                // 2304×640 → 18×5 grid of 128×128 (96×128 mis-tiles the sheet and scrambles frames).
+                sheet = assets.sheet(spriteId, 128, 128);
                 idle = new AnimationStrip(0, 0, 8, 5);
-                walk = new AnimationStrip(0, 0, 8, 7);
-                attack = new AnimationStrip(1, 0, 18, 10);
+                walk = new AnimationStrip(1, 0, 8, 7);
+                attack = new AnimationStrip(2, 0, 12, 10);
             }
             case "enemy.vendor" -> {
                 sheet = assets.sheet(spriteId, 64, 64);
@@ -662,18 +663,18 @@ public class GameScene {
                 attack = new AnimationStrip(0, 0, 4, 8);
             }
             case "enemy.khai_mimic_human" -> {
-                // Same art as intro Sir Khai: human row 0; static idle, gentle walk while moving.
+                // khai_with_zombified: row 0 = human idle/walk; row 1 = continued human motion (matches intro event row).
                 sheet = assets.sheet("character.sir_khai", 32, 32);
-                idle = new AnimationStrip(0, 0, 1, 0);
-                walk = new AnimationStrip(0, 0, 8, 3);
-                attack = new AnimationStrip(0, 0, 4, 5);
+                idle = new AnimationStrip(0, 0, 8, 4);
+                walk = new AnimationStrip(1, 0, 8, 5);
+                attack = new AnimationStrip(0, 0, 4, 6);
             }
             case "enemy.khai_mimic" -> {
-                // 2560×640 sheet: 20×128px columns × 4 rows of 160px (12 / 14 / 15 / 17 frames per row).
+                // khai_boss_mimic 2560×640: 20 cols × 128px × 4 rows × 160px — rows 0 idle, 1 walk, 2 braced, 3 slam.
                 sheet = assets.sheet(spriteId, 128, 160);
-                idle = new AnimationStrip(0, 0, 12, 2);
-                walk = new AnimationStrip(1, 0, 14, 3);
-                attack = new AnimationStrip(3, 0, 17, 6);
+                idle = new AnimationStrip(0, 0, 12, 3);
+                walk = new AnimationStrip(1, 0, 14, 4);
+                attack = new AnimationStrip(3, 0, 17, 7);
             }
             default -> {
                 sheet = assets.sheet(spriteId, 32, 32);
