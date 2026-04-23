@@ -1,4 +1,4 @@
-package org.example.scenes;
+package org.example.ui;
 
 import javafx.animation.AnimationTimer;
 import javafx.scene.Scene;
@@ -12,7 +12,7 @@ import javafx.scene.text.FontWeight;
 import org.example.Main;
 import org.example.assets.SpriteSheet;
 import org.example.player.CharacterType;
-import org.example.runtime.GameContext;
+import org.example.app.GameContext;
 
 public class CharacterSelectScene {
 

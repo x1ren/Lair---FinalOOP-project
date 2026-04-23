@@ -1,4 +1,4 @@
-package org.example.scenes;
+package org.example.ui;
 
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -11,9 +11,9 @@ import org.example.assets.AnimationStrip;
 import org.example.assets.AssetRegistry;
 import org.example.assets.SpriteSheet;
 import org.example.assets.SpriteSet;
-import org.example.engines.CollisionManager;
-import org.example.engines.GameLoop;
-import org.example.engines.InputHandler;
+import org.example.engine.CollisionManager;
+import org.example.engine.GameLoop;
+import org.example.engine.InputHandler;
 import org.example.gameplay.BleedConfig;
 import org.example.gameplay.CombatScaling;
 import org.example.gameplay.EnemyActor;
@@ -27,7 +27,7 @@ import org.example.gameplay.StageCatalog;
 import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterCombatProfile;
 import org.example.player.CharacterType;
-import org.example.runtime.GameContext;
+import org.example.app.GameContext;
 import org.example.weapons.Weapon;
 
 import java.util.ArrayList;

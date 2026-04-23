@@ -1,4 +1,4 @@
-package org.example.engines;
+package org.example.engine;
 
 import org.example.gameplay.GameObject;
 import org.example.gameplay.Projectile;

@@ -1,4 +1,4 @@
-package org.example.scenes;
+package org.example.ui;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -7,7 +7,7 @@ import javafx.scene.text.FontWeight;
 import org.example.assets.SpriteSheet;
 import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterType;
-import org.example.runtime.GameContext;
+import org.example.app.GameContext;
 import org.example.weapons.Weapon;
 
 import java.util.List;

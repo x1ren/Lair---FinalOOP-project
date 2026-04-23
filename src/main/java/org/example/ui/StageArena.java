@@ -1,4 +1,4 @@
-package org.example.scenes;
+package org.example.ui;
 
 import javafx.scene.image.Image;
 import org.example.gameplay.PlatformTile;

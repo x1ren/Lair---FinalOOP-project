@@ -1,4 +1,4 @@
-package org.example.scenes;
+package org.example.ui;
 
 import org.example.Main;
 import javafx.animation.*;
@@ -10,7 +10,7 @@ import javafx.scene.paint.*;
 import javafx.scene.text.*;
 import javafx.util.Duration;
 import org.example.assets.SpriteSheet;
-import org.example.runtime.GameContext;
+import org.example.app.GameContext;
 
 import java.util.List;
 

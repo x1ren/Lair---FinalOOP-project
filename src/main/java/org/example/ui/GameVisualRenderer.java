@@ -1,4 +1,4 @@
-package org.example.scenes;
+package org.example.ui;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;

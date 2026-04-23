@@ -1,4 +1,4 @@
-package org.example.runtime;
+package org.example.app;
 
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -7,9 +7,9 @@ import org.example.assets.AssetPreloader;
 import org.example.assets.AssetRegistry;
 import org.example.audio.AudioManager;
 import org.example.player.CharacterType;
-import org.example.scenes.CharacterSelectScene;
-import org.example.scenes.GameScene;
-import org.example.scenes.IntroScene;
+import org.example.ui.CharacterSelectScene;
+import org.example.ui.GameScene;
+import org.example.ui.IntroScene;
 
 public final class GameContext {
 
