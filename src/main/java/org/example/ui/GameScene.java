@@ -656,23 +656,24 @@ public class GameScene {
             }
             case "enemy.caesar_hunos" -> {
                 sheet = assets.sheet(spriteId, 120, 120);
-                idle = new AnimationStrip(0, 0, 25, 5);
-                walk = new AnimationStrip(0, 0, 25, 10);
-                attack = new AnimationStrip(0, 0, 25, 14);
+                // Boss chases non-stop — cycling all 25 frames looked like constant sliding; hold a calm pose + short slow walk.
+                idle = new AnimationStrip(0, 0, 1, 0);
+                walk = new AnimationStrip(0, 0, 6, 2.5);
+                attack = new AnimationStrip(0, 0, 4, 8);
             }
             case "enemy.khai_mimic_human" -> {
-                // Same art as intro Sir Khai: human on row 0 (8 frames) before the mimic reveals the host body.
+                // Same art as intro Sir Khai: human row 0; static idle, gentle walk while moving.
                 sheet = assets.sheet("character.sir_khai", 32, 32);
-                idle = new AnimationStrip(0, 0, 8, 5);
-                walk = new AnimationStrip(0, 0, 8, 8);
-                attack = new AnimationStrip(0, 0, 8, 6);
+                idle = new AnimationStrip(0, 0, 1, 0);
+                walk = new AnimationStrip(0, 0, 8, 3);
+                attack = new AnimationStrip(0, 0, 4, 5);
             }
             case "enemy.khai_mimic" -> {
                 // 2560×640 sheet: 20×128px columns × 4 rows of 160px (12 / 14 / 15 / 17 frames per row).
                 sheet = assets.sheet(spriteId, 128, 160);
-                idle = new AnimationStrip(0, 0, 12, 5);
-                walk = new AnimationStrip(1, 0, 14, 8);
-                attack = new AnimationStrip(3, 0, 17, 10);
+                idle = new AnimationStrip(0, 0, 12, 2);
+                walk = new AnimationStrip(1, 0, 14, 3);
+                attack = new AnimationStrip(3, 0, 17, 6);
             }
             default -> {
                 sheet = assets.sheet(spriteId, 32, 32);

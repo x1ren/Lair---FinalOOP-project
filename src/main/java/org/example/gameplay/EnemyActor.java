@@ -213,11 +213,19 @@ public class EnemyActor extends GameObject {
     }
 
     public void chase(PlayerActor player, double dt, double minX, double maxX, double slowMoveFactor) {
-        double direction = Math.signum(player.getCenterX() - getCenterX());
+        double cx = player.getCenterX() - getCenterX();
+        double direction = Math.signum(cx);
         double tuningMult = tuningState.moveMultiplier();
         double effectiveSpeed = slowTimer > 0 ? speed * slowMoveFactor * tuningMult : speed * tuningMult;
-        moving = Math.abs(direction) > 0;
-        if (direction != 0) {
+        moving = Math.abs(cx) > 0.5;
+        if (boss) {
+            // Avoid flip-flopping facing when the player sits near the boss centerline (reduces mirror-smear feel).
+            if (cx < -10) {
+                facing = -1;
+            } else if (cx > 10) {
+                facing = 1;
+            }
+        } else if (direction != 0) {
             facing = direction < 0 ? -1 : 1;
         }
         moveBy(direction * effectiveSpeed * dt, 0);
@@ -281,9 +289,11 @@ public class EnemyActor extends GameObject {
         }
 
         if (boss) {
-            gc.setFont(javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 12));
+            var font = javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 12);
+            gc.setFont(font);
             gc.setFill(Color.WHITE);
-            gc.fillText(name, x - 10, y - 16);
+            double labelW = name.length() * 7.0;
+            gc.fillText(name, x + (getWidth() - labelW) / 2.0, y - 16);
         }
     }
 
