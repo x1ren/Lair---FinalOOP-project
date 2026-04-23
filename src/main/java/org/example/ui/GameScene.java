@@ -90,6 +90,8 @@ public class GameScene {
     private double hudAnimTime;
 
     private double muzzleFlashTimer;
+    /** Length of the current muzzle burst; matches weapon cadence so SMG visuals stay in sync with fire rate. */
+    private double muzzleFlashDuration = 0.08;
     private double muzzleFlashX;
     private double muzzleFlashY;
     private double muzzleFlashAngle;
@@ -439,6 +441,9 @@ public class GameScene {
         if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
             shootCooldown *= combatProfile.overdriveFireRateCooldownMultiplier();
         }
+        // Muzzle + SMG strip were hardcoded at 0.08s while SMG fire rate is 0.06s — flashes restarted before finishing
+        // and felt out of sync with shots. Tie burst length to this shot's cooldown (capped for slow weapons).
+        muzzleFlashDuration = Math.min(0.14, Math.max(0.035, shootCooldown * 0.92));
 
         double originX = player.getCenterX();
         double originY = player.getY() + player.getHeight() * 0.35;
@@ -446,7 +451,7 @@ public class GameScene {
         double targetY = input.getMouseY();
         double angle = Math.atan2(targetY - originY, targetX - originX);
 
-        muzzleFlashTimer = 0.08;
+        muzzleFlashTimer = muzzleFlashDuration;
         muzzleFlashX = originX;
         muzzleFlashY = originY;
         muzzleFlashAngle = angle;
@@ -750,8 +755,10 @@ public class GameScene {
         arena.exitMarker().render(gc);
         enemies.renderAll(gc);
         player.render(gc);
-        visualRenderer.renderPlayerWeapon(player, weapon, finished, victory, getAimAngle(), muzzleFlashTimer);
-        visualRenderer.renderMuzzleFlash(muzzleFlashTimer, muzzleFlashX, muzzleFlashY, muzzleFlashAngle);
+        visualRenderer.renderPlayerWeapon(player, weapon, finished, victory, getAimAngle(),
+                muzzleFlashTimer, muzzleFlashDuration);
+        visualRenderer.renderMuzzleFlash(muzzleFlashTimer, muzzleFlashDuration,
+                muzzleFlashX, muzzleFlashY, muzzleFlashAngle);
         projectiles.renderAll(gc);
         
         gc.restore();

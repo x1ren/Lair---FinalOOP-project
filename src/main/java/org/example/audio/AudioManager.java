@@ -67,6 +67,14 @@ public final class AudioManager {
             "audio.weapon.bacus_sniper_3"
     };
 
+    private static final String[] ALL_WEAPON_FIRE_IDS = {
+            "audio.weapon.jimenez_rifle_1", "audio.weapon.jimenez_rifle_2", "audio.weapon.jimenez_rifle_3",
+            "audio.weapon.iben_lmg_1", "audio.weapon.iben_lmg_2", "audio.weapon.iben_lmg_3",
+            "audio.weapon.ilde_smg_1", "audio.weapon.ilde_smg_2", "audio.weapon.ilde_smg_3",
+            "audio.weapon.gaille_shotgun_1", "audio.weapon.gaille_shotgun_2", "audio.weapon.gaille_shotgun_3",
+            "audio.weapon.bacus_sniper_1", "audio.weapon.bacus_sniper_2", "audio.weapon.bacus_sniper_3",
+    };
+
     private static final double WEAPON_FIRE_VOLUME = 0.48;
 
     private final AssetRegistry assets;
@@ -133,6 +141,7 @@ public final class AudioManager {
 
     /** One-shot gunfire SFX matched to the playable character roster. */
     public void playWeaponFire(CharacterType character) {
+        stopAllWeaponFireClips();
         String[] ids = switch (character) {
             case JOSEPH_JIMENEZ -> JIMENEZ_WEAPON_IDS;
             case IBEN_ANOOS -> IBEN_WEAPON_IDS;
@@ -141,6 +150,16 @@ public final class AudioManager {
             case JAMUEL_BACUS -> BACUS_WEAPON_IDS;
         };
         playRandom(ids, WEAPON_FIRE_VOLUME);
+    }
+
+    /** Cuts stacked gunfire tails so rapid semi-auto / SMG bursts stay crisp and aligned with each shot. */
+    private void stopAllWeaponFireClips() {
+        for (String id : ALL_WEAPON_FIRE_IDS) {
+            AudioClip clip = assets.audio(id);
+            if (clip != null) {
+                clip.stop();
+            }
+        }
     }
 
     private void playRandom(String[] ids, double volume) {

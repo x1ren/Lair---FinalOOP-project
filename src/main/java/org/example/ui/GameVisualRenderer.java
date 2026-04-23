@@ -50,7 +50,7 @@ final class GameVisualRenderer {
     }
 
     void renderPlayerWeapon(PlayerActor player, Weapon weapon, boolean finished, boolean victory,
-                            double aimAngle, double muzzleFlashTimer) {
+                            double aimAngle, double muzzleFlashTimer, double muzzleFlashDuration) {
         if (finished && !victory) {
             return;
         }
@@ -67,7 +67,7 @@ final class GameVisualRenderer {
         gc.fillRect(4, -2, 26, 6);
 
         if (weapon.getType() == WeaponType.SMG) {
-            renderSmgWeaponSprite(muzzleFlashTimer);
+            renderSmgWeaponSprite(muzzleFlashTimer, muzzleFlashDuration);
         } else {
             renderProceduralWeapon(weapon.getType());
         }
@@ -75,7 +75,8 @@ final class GameVisualRenderer {
         gc.restore();
     }
 
-    void renderMuzzleFlash(double muzzleFlashTimer, double muzzleFlashX, double muzzleFlashY, double muzzleFlashAngle) {
+    void renderMuzzleFlash(double muzzleFlashTimer, double muzzleFlashDuration,
+                           double muzzleFlashX, double muzzleFlashY, double muzzleFlashAngle) {
         if (muzzleFlashTimer <= 0) {
             return;
         }
@@ -85,10 +86,11 @@ final class GameVisualRenderer {
             return;
         }
 
+        double dur = Math.max(0.001, muzzleFlashDuration);
         int frameWidth = 32;
         int frameHeight = 64;
         int columns = (int) flashSheet.getWidth() / frameWidth;
-        int column = Math.min(columns - 1, (int) ((0.08 - muzzleFlashTimer) / 0.08 * columns));
+        int column = Math.min(columns - 1, (int) ((dur - muzzleFlashTimer) / dur * columns));
 
         gc.save();
         gc.translate(muzzleFlashX, muzzleFlashY);
@@ -115,7 +117,7 @@ final class GameVisualRenderer {
         gc.fillRect(targetX, targetY, targetW, targetH);
     }
 
-    private void renderSmgWeaponSprite(double muzzleFlashTimer) {
+    private void renderSmgWeaponSprite(double muzzleFlashTimer, double muzzleFlashDuration) {
         Image smgSheet = assets.image("weapon.smg");
         if (smgSheet == null) {
             renderProceduralWeapon(WeaponType.SMG);
@@ -130,7 +132,7 @@ final class GameVisualRenderer {
             column = 0;
         } else {
             int flashFrames = columns - 1;
-            double flashDuration = 0.08;
+            double flashDuration = Math.max(0.001, muzzleFlashDuration);
             int idx = (int) ((flashDuration - muzzleFlashTimer) / flashDuration * flashFrames);
             idx = Math.min(flashFrames - 1, Math.max(0, idx));
             column = 1 + idx;
