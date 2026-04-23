@@ -450,6 +450,7 @@ public class GameScene {
         muzzleFlashX = originX;
         muzzleFlashY = originY;
         muzzleFlashAngle = angle;
+        GameContext.audio().playWeaponFire(character);
 
         int projectileCount = weapon.getPelletsPerShot();
         if (overloadShots > 0 && character == CharacterType.GAILE_AMOLONG) {
@@ -657,16 +658,18 @@ public class GameScene {
             }
             case "enemy.caesar_hunos" -> {
                 sheet = assets.sheet(spriteId, 120, 120);
-                // Boss chases non-stop — cycling all 25 frames looked like constant sliding; hold a calm pose + short slow walk.
+                // caesar_hunos_idle.png: one row of 120×120 cells; column 3 is fully transparent. A 0..5 walk loop
+                // flashes empty every sixth frame. Use opaque columns 4–7 for walk; attack uses 0–2 only (skip col 3).
                 idle = new AnimationStrip(0, 0, 1, 0);
-                walk = new AnimationStrip(0, 0, 6, 2.5);
-                attack = new AnimationStrip(0, 0, 4, 8);
+                walk = new AnimationStrip(0, 4, 4, 2.5);
+                attack = new AnimationStrip(0, 0, 3, 8);
             }
             case "enemy.khai_mimic_human" -> {
-                // khai_with_zombified: row 0 = human idle/walk; row 1 = continued human motion (matches intro event row).
+                // khai_with_zombified.png 256×128 @ 32×32: row 0 has 8 opaque cells; row 1 cols 4–7 are fully empty.
+                // Bosses always pick walk — use row 0 for walk so the disguise never samples transparent tiles.
                 sheet = assets.sheet("character.sir_khai", 32, 32);
                 idle = new AnimationStrip(0, 0, 8, 4);
-                walk = new AnimationStrip(1, 0, 8, 5);
+                walk = new AnimationStrip(0, 0, 8, 5);
                 attack = new AnimationStrip(0, 0, 4, 6);
             }
             case "enemy.khai_mimic" -> {

@@ -32,6 +32,20 @@ import java.util.List;
  */
 public class IntroScene {
 
+    /**
+     * Per-frame non-transparent bounds inside each Hunos sheet cell (see {@link #drawCaesarIntroActor}).
+     * The art is a tiny ~17×26px figure in a 110×120 / 120×120 cell; drawing the full cell at ~64px made Caesar
+     * look miniature next to 32×32 sprites scaled to ~72px.
+     */
+    private static final int[][] CAESAR_IDLE_CELL_BBOX = {
+            {52, 62, 17, 26}, {62, 63, 17, 25}, {72, 63, 17, 25}, {82, 62, 17, 26},
+            {92, 62, 17, 26}, {102, 63, 8, 25}, {0, 63, 9, 25}, {2, 63, 17, 25},
+            {12, 62, 17, 26}, {22, 63, 17, 25}, {32, 63, 17, 25}, {42, 62, 17, 26},
+    };
+    private static final int[][] CAESAR_WALK_CELL_BBOX = {
+            {52, 62, 17, 26}, {52, 63, 17, 25}, {52, 63, 17, 25}, {52, 62, 17, 26},
+    };
+
     // ── Layout ────────────────────────────────────────────────
     private static final int W = Main.WIDTH;
     private static final int H = Main.HEIGHT;
@@ -376,7 +390,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.28 + i * 0.09), groundY, 72,
                         0, animatedFrame(8, 4.0, i * 0.17), false, 1.0);
             }
-            drawCaesarIntroActor(x + width * 0.78, groundY, 64, speaker.equals("CAESAR"), phase);
+            drawCaesarIntroActor(x + width * 0.78, groundY, 84, speaker.equals("CAESAR"), phase);
         }
 
         if (phase.equals("event")) {
@@ -384,7 +398,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.24 + i * 0.08), groundY, 70,
                         1, animatedFrame(4, 6.0, i * 0.13), false, 0.98);
             }
-            drawCaesarIntroActor(x + width * 0.72, groundY, 60, false, phase);
+            drawCaesarIntroActor(x + width * 0.72, groundY, 82, false, phase);
         }
 
         if (phase.equals("caesar")) {
@@ -392,7 +406,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.26 + i * 0.10), groundY - 8, 58,
                         1, animatedFrame(4, 5.0, i * 0.12), false, 0.48);
             }
-            drawCaesarIntroActor(x + width * 0.68, groundY, 66, speaker.equals("CAESAR"), phase);
+            drawCaesarIntroActor(x + width * 0.68, groundY, 88, speaker.equals("CAESAR"), phase);
         }
 
         if (phase.equals("horror")) {
@@ -400,7 +414,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.26 + i * 0.08), groundY + 8, 66,
                         4, Math.min(5, 1 + i), false, 0.82);
             }
-            drawCaesarIntroActor(x + width * 0.70, groundY - 6, 68, true, phase);
+            drawCaesarIntroActor(x + width * 0.70, groundY - 6, 84, true, phase);
         }
 
         if (phase.equals("awaken") || phase.equals("khai")) {
@@ -482,8 +496,10 @@ public class IntroScene {
     /**
      * Human Caesar before LAIR takes him — {@code Hunos_Idle} / {@code Hunos_Walk}, not the infected gym boss sheet.
      * Idle+blink for calm / shock / horror; walk strip when he is out on the field (event / photo beat).
+     *
+     * @param targetHeight on-screen height for the cropped figure (sheet cells are mostly empty padding).
      */
-    private void drawCaesarIntroActor(double centerX, double groundY, double size, boolean highlighted, String phase) {
+    private void drawCaesarIntroActor(double centerX, double groundY, double targetHeight, boolean highlighted, String phase) {
         boolean walking = phase.equals("event") || phase.equals("caesar");
         String assetId = walking ? "intro.caesar_human_walk" : "intro.caesar_human_idle";
         int cellW = walking ? 120 : 110;
@@ -491,21 +507,53 @@ public class IntroScene {
         int frameCount = walking ? 4 : 12;
         double fps = walking ? 5.0 : 3.2;
 
-        SpriteSheet sheet = GameContext.assets().sheet(assetId, cellW, cellH);
-        if (sheet == null) {
-            drawNamedFallbackActor("CAESAR", centerX, groundY, 16, 48,
+        Image img = GameContext.assets().image(assetId);
+        if (img == null) {
+            drawNamedFallbackActor("CAESAR", centerX, groundY, 22, 72,
                     Color.color(0.88, 0.72, 0.40), highlighted);
             return;
         }
+
         int col = animatedFrame(frameCount, fps, 0);
+        int[][] boxes = walking ? CAESAR_WALK_CELL_BBOX : CAESAR_IDLE_CELL_BBOX;
+        int[] box = boxes[Math.min(col, boxes.length - 1)];
+        int margin = 4;
+        double cellX = col * (double) cellW;
+        double sx = cellX + box[0] - margin;
+        double sy = box[1] - margin;
+        double sw = box[2] + 2.0 * margin;
+        double sh = box[3] + 2.0 * margin;
+        double cellRight = cellX + cellW;
+        if (sx < cellX) {
+            sx = cellX;
+        }
+        if (sy < 0) {
+            sy = 0;
+        }
+        if (sx + sw > cellRight) {
+            sw = cellRight - sx;
+        }
+        if (sy + sh > cellH) {
+            sh = cellH - sy;
+        }
+        if (sw < 1 || sh < 1) {
+            return;
+        }
+
+        double destH = Math.max(56, targetHeight);
+        double destW = destH * (sw / sh);
+        double dx = snap(centerX - destW / 2);
+        double dy = snap(groundY - destH);
+
         if (highlighted) {
             gc.save();
             gc.setFill(Color.color(0.92, 0.78, 0.22, 0.28));
-            gc.fillRect(snap(centerX - size / 2 - 4), snap(groundY - size - 12), size + 8, size + 20);
+            gc.fillRect(snap(centerX - destW / 2 - 4), snap(groundY - destH - 12), destW + 8, destH + 20);
             gc.restore();
         }
         gc.save();
-        sheet.drawFrame(gc, 0, col, snap(centerX - size / 2), snap(groundY - size), size, size, false);
+        gc.setImageSmoothing(false);
+        gc.drawImage(img, sx, sy, sw, sh, dx, dy, destW, destH);
         gc.restore();
     }
 

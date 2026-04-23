@@ -56,7 +56,7 @@ public final class AssetRegistry {
         registerImage("ui.skill.bacus", "/assets/ui/skills/Bacus_Skill.png");
 
         registerImage("effect.muzzle_flash", "/assets/effects/muzzle_flash.png");
-        registerImage("weapon.smg", "/assets/effects/muzzle_flash.png");
+        registerImage("weapon.smg", "/assets/gun/smg.png");
 
         registerAudio("audio.death", "/assets/audio/death.mp3");
         registerAudio("audio.jump.boing", "/assets/audio/jump/Boing.mp3");
@@ -84,6 +84,22 @@ public final class AssetRegistry {
         for (int i = 0; i < 10; i++) {
             registerAudio("audio.walk." + i, String.format("/assets/audio/walk/footstep%02d.ogg", i));
         }
+
+        registerAudio("audio.weapon.jimenez_rifle_1", "/assets/gun/jimenez_rifle_1.mp3");
+        registerAudio("audio.weapon.jimenez_rifle_2", "/assets/gun/jimenez_rifle_2.mp3");
+        registerAudio("audio.weapon.jimenez_rifle_3", "/assets/gun/jimenez_rifle_3.mp3");
+        registerAudio("audio.weapon.iben_lmg_1", "/assets/gun/iben_lmg_1.mp3");
+        registerAudio("audio.weapon.iben_lmg_2", "/assets/gun/iben_lmg_2.mp3");
+        registerAudio("audio.weapon.iben_lmg_3", "/assets/gun/iben_lmg_3.mp3");
+        registerAudio("audio.weapon.ilde_smg_1", "/assets/gun/ilde_smg_1.mp3");
+        registerAudio("audio.weapon.ilde_smg_2", "/assets/gun/ilde_smg_2.mp3");
+        registerAudio("audio.weapon.ilde_smg_3", "/assets/gun/ilde_smg_3.mp3");
+        registerAudio("audio.weapon.gaille_shotgun_1", "/assets/gun/gaille_shotgun_1.mp3");
+        registerAudio("audio.weapon.gaille_shotgun_2", "/assets/gun/gaille_shotgun_2.mp3");
+        registerAudio("audio.weapon.gaille_shotgun_3", "/assets/gun/gaille_shotgun_3.mp3");
+        registerAudio("audio.weapon.bacus_sniper_1", "/assets/gun/bacus_sniper_1.mp3");
+        registerAudio("audio.weapon.bacus_sniper_2", "/assets/gun/bacus_sniper_2.mp3");
+        registerAudio("audio.weapon.bacus_sniper_3", "/assets/gun/bacus_sniper_3.mp3");
     }
 
     private void registerImage(String id, String path) {
