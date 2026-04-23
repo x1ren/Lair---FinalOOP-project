@@ -1,12 +1,19 @@
 package org.example.audio;
 
 import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import org.example.assets.AssetRegistry;
 import org.example.player.CharacterType;
 
+import java.net.URL;
 import java.util.Random;
 
 public final class AudioManager {
+
+    private static final String BGM_GENERAL = "/assets/The Lair.mp3";
+    private static final String BGM_SIR_KHAI_MIMIC_BOSS = "/assets/The Lair Mimic (Sir Khai).mp3";
+    private static final double BGM_VOLUME = 0.38;
 
     private static final String[] MALE_JUMP_IDS = {
             "audio.jump.masc_jump",
@@ -37,8 +44,47 @@ public final class AudioManager {
     private final AssetRegistry assets;
     private final Random random = new Random();
 
+    private MediaPlayer backgroundMusic;
+    private String backgroundMusicResource;
+
     public AudioManager(AssetRegistry assets) {
         this.assets = assets;
+    }
+
+    /** Loops story BGM; switches to the Sir Khai mimic track on the final courtyard stage. */
+    public void setStoryBackgroundMusic(boolean sirKhaiMimicBossStage) {
+        String resource = sirKhaiMimicBossStage ? BGM_SIR_KHAI_MIMIC_BOSS : BGM_GENERAL;
+        if (resource.equals(backgroundMusicResource)
+                && backgroundMusic != null
+                && backgroundMusic.getStatus() == MediaPlayer.Status.PLAYING) {
+            return;
+        }
+        stopBackgroundMusic();
+        backgroundMusicResource = resource;
+        URL url = AudioManager.class.getResource(resource);
+        if (url == null) {
+            backgroundMusicResource = null;
+            return;
+        }
+        try {
+            Media media = new Media(url.toExternalForm());
+            backgroundMusic = new MediaPlayer(media);
+            backgroundMusic.setCycleCount(MediaPlayer.INDEFINITE);
+            backgroundMusic.setVolume(BGM_VOLUME);
+            backgroundMusic.play();
+        } catch (RuntimeException ignored) {
+            backgroundMusicResource = null;
+            backgroundMusic = null;
+        }
+    }
+
+    public void stopBackgroundMusic() {
+        if (backgroundMusic != null) {
+            backgroundMusic.stop();
+            backgroundMusic.dispose();
+            backgroundMusic = null;
+        }
+        backgroundMusicResource = null;
     }
 
     public void playJump(CharacterType character) {

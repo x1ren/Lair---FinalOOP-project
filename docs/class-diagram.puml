@@ -6,7 +6,7 @@ package "org.example" {
   class Main
 }
 
-package "org.example.scenes" {
+package "org.example.ui" {
   class IntroScene
   class CharacterSelectScene
   class GameScene
@@ -16,7 +16,7 @@ package "org.example.player" {
   enum CharacterType
 }
 
-package "org.example.runtime" {
+package "org.example.app" {
   class GameContext
 }
 
@@ -32,7 +32,7 @@ package "org.example.audio" {
   class AudioManager
 }
 
-package "org.example.engines" {
+package "org.example.engine" {
   abstract class GameLoop
   class InputHandler
   class CollisionManager

@@ -58,7 +58,7 @@ public final class StageCatalog {
                         "Caesar Hunos",
                         450,
                         102,
-                        null,
+                        "enemy.caesar_hunos",
                         "stage.gym",
                         Color.color(0.68, 0.18, 0.18)
                 ),
@@ -75,7 +75,7 @@ public final class StageCatalog {
                         "LAIR Mimic (False Sir Khai)",
                         520,
                         108,
-                        null,
+                        "enemy.khai_mimic_human",
                         "stage.courtyard",
                         Color.color(0.42, 0.70, 0.24)
                 )
