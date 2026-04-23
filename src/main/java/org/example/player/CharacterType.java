@@ -163,6 +163,17 @@ public enum CharacterType {
         return spriteAssetId;
     }
 
+    /** HUD / character-select strip for the signature skill (surname-based art files). */
+    public String getSkillIconAssetId() {
+        return switch (this) {
+            case JOSEPH_JIMENEZ -> "ui.skill.jimenez";
+            case IBEN_ANOOS -> "ui.skill.anoos";
+            case ILDE_JAN_FIGUERAS -> "ui.skill.figueras";
+            case GAILE_AMOLONG -> "ui.skill.amolong";
+            case JAMUEL_BACUS -> "ui.skill.bacus";
+        };
+    }
+
     public boolean isFemaleVoice() {
         return femaleVoice;
     }
