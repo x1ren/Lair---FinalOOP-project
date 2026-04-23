@@ -376,7 +376,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.28 + i * 0.09), groundY, 72,
                         0, animatedFrame(8, 4.0, i * 0.17), false, 1.0);
             }
-            drawCaesarIntroActor(x + width * 0.78, groundY, 64, speaker.equals("CAESAR"));
+            drawCaesarIntroActor(x + width * 0.78, groundY, 64, speaker.equals("CAESAR"), phase);
         }
 
         if (phase.equals("event")) {
@@ -384,7 +384,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.24 + i * 0.08), groundY, 70,
                         1, animatedFrame(4, 6.0, i * 0.13), false, 0.98);
             }
-            drawCaesarIntroActor(x + width * 0.72, groundY, 60, false);
+            drawCaesarIntroActor(x + width * 0.72, groundY, 60, false, phase);
         }
 
         if (phase.equals("caesar")) {
@@ -392,7 +392,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.26 + i * 0.10), groundY - 8, 58,
                         1, animatedFrame(4, 5.0, i * 0.12), false, 0.48);
             }
-            drawCaesarIntroActor(x + width * 0.68, groundY, 66, speaker.equals("CAESAR"));
+            drawCaesarIntroActor(x + width * 0.68, groundY, 66, speaker.equals("CAESAR"), phase);
         }
 
         if (phase.equals("horror")) {
@@ -400,7 +400,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.26 + i * 0.08), groundY + 8, 66,
                         4, Math.min(5, 1 + i), false, 0.82);
             }
-            drawCaesarIntroActor(x + width * 0.70, groundY - 6, 68, true);
+            drawCaesarIntroActor(x + width * 0.70, groundY - 6, 68, true, phase);
         }
 
         if (phase.equals("awaken") || phase.equals("khai")) {
@@ -479,14 +479,25 @@ public class IntroScene {
         gc.restore();
     }
 
-    private void drawCaesarIntroActor(double centerX, double groundY, double size, boolean highlighted) {
-        SpriteSheet sheet = GameContext.assets().sheet("enemy.caesar_hunos", 120, 120);
+    /**
+     * Human Caesar before LAIR takes him — {@code Hunos_Idle} / {@code Hunos_Walk}, not the infected gym boss sheet.
+     * Idle+blink for calm / shock / horror; walk strip when he is out on the field (event / photo beat).
+     */
+    private void drawCaesarIntroActor(double centerX, double groundY, double size, boolean highlighted, String phase) {
+        boolean walking = phase.equals("event") || phase.equals("caesar");
+        String assetId = walking ? "intro.caesar_human_walk" : "intro.caesar_human_idle";
+        int cellW = walking ? 120 : 110;
+        int cellH = 120;
+        int frameCount = walking ? 4 : 12;
+        double fps = walking ? 5.0 : 3.2;
+
+        SpriteSheet sheet = GameContext.assets().sheet(assetId, cellW, cellH);
         if (sheet == null) {
             drawNamedFallbackActor("CAESAR", centerX, groundY, 16, 48,
                     Color.color(0.88, 0.72, 0.40), highlighted);
             return;
         }
-        int col = animatedFrame(25, 5.0, 0);
+        int col = animatedFrame(frameCount, fps, 0);
         if (highlighted) {
             gc.save();
             gc.setFill(Color.color(0.92, 0.78, 0.22, 0.28));

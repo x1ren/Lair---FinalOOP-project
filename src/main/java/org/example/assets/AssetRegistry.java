@@ -46,6 +46,8 @@ public final class AssetRegistry {
         registerImage("character.sir_khai", "/assets/stages/enemies/khai_with_zombified.png");
         registerImage("enemy.khai_mimic", "/assets/stages/enemies/khai_boss_mimic.png");
         registerImage("enemy.caesar_hunos", "/assets/stages/enemies/caesar_hunos_idle.png");
+        registerImage("intro.caesar_human_idle", "/assets/stages/enemies/caesar_human_idle.png");
+        registerImage("intro.caesar_human_walk", "/assets/stages/enemies/caesar_human_walk.png");
 
         registerImage("ui.skill.jimenez", "/assets/ui/skills/Jimenez_Skill.png");
         registerImage("ui.skill.anoos", "/assets/ui/skills/Anoos_Skill.png");
