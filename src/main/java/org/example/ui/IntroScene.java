@@ -412,9 +412,9 @@ public class IntroScene {
                         0, animatedFrame(8, 4.0, i * 0.21), false, 1.0);
             }
             double khaiX = x + width * 0.72;
-            // Row 3 = zombified Sir Khai on the transition sheet (human rows 0–2, boss form row 3).
-            drawSirKhaiActor(khaiX, groundY, 72, 3,
-                    0, speaker.equals("SIR KHAI"));
+            // LAIR briefing: Sir Khai is still the real teacher — human row 0 only (zombie row is for the mimic in gameplay).
+            drawSirKhaiActor(khaiX, groundY, 72, 0,
+                    animatedFrame(8, 4.0, 0.5), speaker.equals("SIR KHAI"));
         }
 
         if (!speaker.equals("—")) {
