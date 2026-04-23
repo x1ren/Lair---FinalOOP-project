@@ -122,14 +122,23 @@ final class GameVisualRenderer {
             return;
         }
 
-        int frameWidth = 32;
-        int frameHeight = 32;
-        int column = muzzleFlashTimer > 0 ? 1 : 0;
-        int row = 1;
+        int frameWidth = 64;
+        int frameHeight = 64;
+        int columns = Math.max(1, (int) (smgSheet.getWidth() / frameWidth));
+        int column;
+        if (muzzleFlashTimer <= 0 || columns <= 1) {
+            column = 0;
+        } else {
+            int flashFrames = columns - 1;
+            double flashDuration = 0.08;
+            int idx = (int) ((flashDuration - muzzleFlashTimer) / flashDuration * flashFrames);
+            idx = Math.min(flashFrames - 1, Math.max(0, idx));
+            column = 1 + idx;
+        }
 
         gc.setImageSmoothing(false);
-        gc.drawImage(smgSheet, column * frameWidth, row * frameHeight, frameWidth, frameHeight,
-                -4, -18, 44, 24);
+        gc.drawImage(smgSheet, column * frameWidth, 0, frameWidth, frameHeight,
+                -6, -20, 56, 32);
     }
 
     private void renderProceduralWeapon(WeaponType weaponType) {

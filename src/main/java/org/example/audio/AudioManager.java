@@ -41,6 +41,34 @@ public final class AudioManager {
             "audio.jump.bum"
     };
 
+    private static final String[] JIMENEZ_WEAPON_IDS = {
+            "audio.weapon.jimenez_rifle_1",
+            "audio.weapon.jimenez_rifle_2",
+            "audio.weapon.jimenez_rifle_3"
+    };
+    private static final String[] IBEN_WEAPON_IDS = {
+            "audio.weapon.iben_lmg_1",
+            "audio.weapon.iben_lmg_2",
+            "audio.weapon.iben_lmg_3"
+    };
+    private static final String[] ILDE_WEAPON_IDS = {
+            "audio.weapon.ilde_smg_1",
+            "audio.weapon.ilde_smg_2",
+            "audio.weapon.ilde_smg_3"
+    };
+    private static final String[] GAILE_WEAPON_IDS = {
+            "audio.weapon.gaille_shotgun_1",
+            "audio.weapon.gaille_shotgun_2",
+            "audio.weapon.gaille_shotgun_3"
+    };
+    private static final String[] BACUS_WEAPON_IDS = {
+            "audio.weapon.bacus_sniper_1",
+            "audio.weapon.bacus_sniper_2",
+            "audio.weapon.bacus_sniper_3"
+    };
+
+    private static final double WEAPON_FIRE_VOLUME = 0.48;
+
     private final AssetRegistry assets;
     private final Random random = new Random();
 
@@ -101,6 +129,18 @@ public final class AudioManager {
 
     public void playDeath() {
         play("audio.death", 0.35);
+    }
+
+    /** One-shot gunfire SFX matched to the playable character roster. */
+    public void playWeaponFire(CharacterType character) {
+        String[] ids = switch (character) {
+            case JOSEPH_JIMENEZ -> JIMENEZ_WEAPON_IDS;
+            case IBEN_ANOOS -> IBEN_WEAPON_IDS;
+            case ILDE_JAN_FIGUERAS -> ILDE_WEAPON_IDS;
+            case GAILE_AMOLONG -> GAILE_WEAPON_IDS;
+            case JAMUEL_BACUS -> BACUS_WEAPON_IDS;
+        };
+        playRandom(ids, WEAPON_FIRE_VOLUME);
     }
 
     private void playRandom(String[] ids, double volume) {

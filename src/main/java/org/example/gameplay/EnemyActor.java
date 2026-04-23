@@ -33,6 +33,8 @@ public class EnemyActor extends GameObject {
     private double animationTime;
     private boolean moving;
     private boolean attacking;
+    /** Keeps {@link #attackStrip} visible briefly after a melee hit so bosses do not flash attack for one frame. */
+    private double bossMeleeAnimHoldSec;
     private int facing = -1;
 
     public EnemyActor(String name, double x, double y, double width, double height,
@@ -119,6 +121,9 @@ public class EnemyActor extends GameObject {
     }
 
     public void setAttacking(boolean attacking) {
+        if (attacking && boss) {
+            bossMeleeAnimHoldSec = 0.12;
+        }
         this.attacking = attacking;
     }
 
@@ -196,6 +201,7 @@ public class EnemyActor extends GameObject {
         }
 
         jumpCooldown = Math.max(0, jumpCooldown - dt);
+        bossMeleeAnimHoldSec = Math.max(0, bossMeleeAnimHoldSec - dt);
 
         if (bleedTicks <= 0) {
             return;
@@ -298,6 +304,9 @@ public class EnemyActor extends GameObject {
     }
 
     private AnimationStrip resolveStrip() {
+        if (boss && attackStrip != null && bossMeleeAnimHoldSec > 0) {
+            return attackStrip;
+        }
         if (attacking && attackStrip != null) {
             return attackStrip;
         }
