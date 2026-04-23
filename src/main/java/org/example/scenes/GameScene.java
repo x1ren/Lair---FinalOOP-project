@@ -86,6 +86,9 @@ public class GameScene {
     private double footstepTimer;
     private boolean deathSoundPlayed;
 
+    /** Seconds, used for HUD skill strip animation. */
+    private double hudAnimTime;
+
     private double muzzleFlashTimer;
     private double muzzleFlashX;
     private double muzzleFlashY;
@@ -152,6 +155,8 @@ public class GameScene {
             exitToCharacterSelect();
             return;
         }
+
+        hudAnimTime += dt;
 
         if (finished) {
             if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
@@ -559,6 +564,8 @@ public class GameScene {
         } else if (stage.hasBoss()) {
             spawnBoss(stage);
         }
+
+        GameContext.audio().setStoryBackgroundMusic(stageIndex == stages.size() - 1);
     }
 
     private void spawnMobWave(StageDefinition stage) {
@@ -620,6 +627,19 @@ public class GameScene {
                 idle = new AnimationStrip(0, 0, 12, 5);
                 walk = new AnimationStrip(1, 0, 8, 8);
                 attack = new AnimationStrip(1, 0, 8, 8);
+            }
+            case "enemy.caesar_hunos" -> {
+                sheet = assets.sheet(spriteId, 120, 120);
+                idle = new AnimationStrip(0, 0, 25, 5);
+                walk = new AnimationStrip(0, 0, 25, 10);
+                attack = new AnimationStrip(0, 0, 25, 14);
+            }
+            case "enemy.khai_mimic" -> {
+                // 2560×640 sheet: 20×128px columns × 4 rows of 160px (12 / 14 / 15 / 17 frames per row).
+                sheet = assets.sheet(spriteId, 128, 160);
+                idle = new AnimationStrip(0, 0, 12, 5);
+                walk = new AnimationStrip(1, 0, 14, 8);
+                attack = new AnimationStrip(3, 0, 17, 10);
             }
             default -> {
                 sheet = assets.sheet(spriteId, 32, 32);
@@ -702,7 +722,8 @@ public class GameScene {
                 getAbilityMeterFill(), getAbilityStatusText(), getReloadStatusText(),
                 getActiveEffectLines(),
                 CombatScaling.playerDamageStageMultiplier(stageIndex),
-                arena.exitMarker().isActive());
+                arena.exitMarker().isActive(),
+                hudAnimTime);
 
         if (stageIntroTimer > 0) {
             hudRenderer.renderStageIntro(stage);
@@ -774,6 +795,7 @@ public class GameScene {
     }
 
     private void exitToCharacterSelect() {
+        GameContext.audio().stopBackgroundMusic();
         loop.stop();
         GameContext.showCharacterSelect();
     }
