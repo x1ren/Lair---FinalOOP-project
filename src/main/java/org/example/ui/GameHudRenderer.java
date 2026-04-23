@@ -4,7 +4,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import org.example.assets.SpriteSheet;
 import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterType;
 import org.example.app.GameContext;
@@ -13,9 +12,6 @@ import org.example.weapons.Weapon;
 import java.util.List;
 
 final class GameHudRenderer {
-
-    private static final int SKILL_ICON_CELL_W = 200;
-    private static final int SKILL_ICON_CELL_H = 140;
 
     private final GraphicsContext gc;
     private final double viewportWidth;
@@ -153,17 +149,8 @@ final class GameHudRenderer {
 
     private void renderSkillIconStrip(CharacterType character, double x, double y,
                                       double drawW, double drawH, double hudAnimTime) {
-        SpriteSheet sheet = GameContext.assets().sheet(character.getSkillIconAssetId(),
-                SKILL_ICON_CELL_W, SKILL_ICON_CELL_H);
-        if (sheet == null) {
-            return;
-        }
-        int cols = sheet.columns();
-        if (cols <= 0) {
-            return;
-        }
-        int col = (int) Math.floor(hudAnimTime * 10.0) % cols;
-        sheet.drawFrame(gc, 0, col, snap(x), snap(y), drawW, drawH, false);
+        var img = GameContext.assets().image(character.getSkillIconAssetId());
+        character.getSkillIconSpec().render(gc, img, snap(x), snap(y), drawW, drawH, hudAnimTime);
     }
 
     private void wrapTextHud(String text, double x, double y, double maxWidth, double lineHeight) {

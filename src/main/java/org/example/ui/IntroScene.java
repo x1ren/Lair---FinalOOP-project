@@ -17,6 +17,11 @@ import java.util.List;
 /**
  * IntroScene — cinematic dialogue intro for THE LAIR.
  *
+ * Story order matches the run: calm classroom setup → meteor on the grounds → Caesar's photo and gas release →
+ * the five survivors wake synced to LAIR while Caesar becomes primary host → Sir Khai sends you through the
+ * school (Library, Canteen, Gym where Caesar falls, then Courtyard for the mimic). After this scene the player
+ * picks which survivor they play and enters that same progression.
+ *
  * Phases:
  *   0  : Title card
  *   1  : Setting     Sir Khai helps the group with their project
