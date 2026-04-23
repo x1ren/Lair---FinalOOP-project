@@ -301,6 +301,11 @@ public class EnemyActor extends GameObject {
         if (attacking && attackStrip != null) {
             return attackStrip;
         }
+        // Major bosses chase every frame; `moving` can flicker near the player line and swap idle vs walk
+        // one frame apart (e.g. Caesar idle = 1 cell vs 6-frame walk) which reads as constant blinking.
+        if (boss && walkStrip != null) {
+            return walkStrip;
+        }
         if (moving && walkStrip != null) {
             return walkStrip;
         }
