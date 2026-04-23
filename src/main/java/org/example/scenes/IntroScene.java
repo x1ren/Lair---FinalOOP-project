@@ -371,8 +371,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.28 + i * 0.09), groundY, 72,
                         0, animatedFrame(8, 4.0, i * 0.17), false, 1.0);
             }
-            drawNamedFallbackActor("CAESAR", x + width * 0.78, groundY, 16, 48,
-                    Color.color(0.88, 0.72, 0.40), speaker.equals("CAESAR"));
+            drawCaesarIntroActor(x + width * 0.78, groundY, 64, speaker.equals("CAESAR"));
         }
 
         if (phase.equals("event")) {
@@ -380,8 +379,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.24 + i * 0.08), groundY, 70,
                         1, animatedFrame(4, 6.0, i * 0.13), false, 0.98);
             }
-            drawNamedFallbackActor("CAESAR", x + width * 0.72, groundY, 16, 48,
-                    Color.color(0.86, 0.82, 0.86), false);
+            drawCaesarIntroActor(x + width * 0.72, groundY, 60, false);
         }
 
         if (phase.equals("caesar")) {
@@ -389,8 +387,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.26 + i * 0.10), groundY - 8, 58,
                         1, animatedFrame(4, 5.0, i * 0.12), false, 0.48);
             }
-            drawNamedFallbackActor("CAESAR", x + width * 0.68, groundY, 18, 56,
-                    Color.color(0.96, 0.78, 0.22), speaker.equals("CAESAR"));
+            drawCaesarIntroActor(x + width * 0.68, groundY, 66, speaker.equals("CAESAR"));
         }
 
         if (phase.equals("horror")) {
@@ -398,8 +395,7 @@ public class IntroScene {
                 drawCharacterActor(survivors[i], x + width * (0.26 + i * 0.08), groundY + 8, 66,
                         4, Math.min(5, 1 + i), false, 0.82);
             }
-            drawNamedFallbackActor("CAESAR", x + width * 0.70, groundY - 6, 20, 58,
-                    Color.color(0.14, 0.96, 0.42), true);
+            drawCaesarIntroActor(x + width * 0.70, groundY - 6, 68, true);
         }
 
         if (phase.equals("awaken") || phase.equals("khai")) {
@@ -411,8 +407,9 @@ public class IntroScene {
                         0, animatedFrame(8, 4.0, i * 0.21), false, 1.0);
             }
             double khaiX = x + width * 0.72;
-            drawSirKhaiActor(khaiX, groundY, 72, 0,
-                    animatedFrame(8, 4.0, 0.5), speaker.equals("SIR KHAI"));
+            // Row 3 = zombified Sir Khai on the transition sheet (human rows 0–2, boss form row 3).
+            drawSirKhaiActor(khaiX, groundY, 72, 3,
+                    0, speaker.equals("SIR KHAI"));
         }
 
         if (!speaker.equals("—")) {
@@ -458,15 +455,12 @@ public class IntroScene {
                                   int row, int column, boolean highlighted) {
         SpriteSheet sheet = GameContext.assets().sheet("character.sir_khai", 32, 32);
         if (sheet == null) {
-            System.out.println("DEBUG: Sir Khai sprite sheet is NULL!");
             gc.save();
             gc.setFill(Color.color(0.82, 0.86, 0.92));
             drawSilhouette(gc, centerX, groundY, 18, 54);
             gc.restore();
             return;
         }
-
-        System.out.println("DEBUG: Drawing Sir Khai - row: " + row + ", column: " + column + ", highlighted: " + highlighted);
 
         if (highlighted) {
             gc.save();
@@ -477,6 +471,25 @@ public class IntroScene {
 
         gc.save();
         sheet.drawFrame(gc, row, column, snap(centerX - size / 2), snap(groundY - size), size, size, false);
+        gc.restore();
+    }
+
+    private void drawCaesarIntroActor(double centerX, double groundY, double size, boolean highlighted) {
+        SpriteSheet sheet = GameContext.assets().sheet("enemy.caesar_hunos", 120, 120);
+        if (sheet == null) {
+            drawNamedFallbackActor("CAESAR", centerX, groundY, 16, 48,
+                    Color.color(0.88, 0.72, 0.40), highlighted);
+            return;
+        }
+        int col = animatedFrame(25, 5.0, 0);
+        if (highlighted) {
+            gc.save();
+            gc.setFill(Color.color(0.92, 0.78, 0.22, 0.28));
+            gc.fillRect(snap(centerX - size / 2 - 4), snap(groundY - size - 12), size + 8, size + 20);
+            gc.restore();
+        }
+        gc.save();
+        sheet.drawFrame(gc, 0, col, snap(centerX - size / 2), snap(groundY - size), size, size, false);
         gc.restore();
     }
 

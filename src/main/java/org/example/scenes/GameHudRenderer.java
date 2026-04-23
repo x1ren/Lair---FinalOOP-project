@@ -4,13 +4,18 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import org.example.assets.SpriteSheet;
 import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterType;
+import org.example.runtime.GameContext;
 import org.example.weapons.Weapon;
 
 import java.util.List;
 
 final class GameHudRenderer {
+
+    private static final int SKILL_ICON_CELL_W = 200;
+    private static final int SKILL_ICON_CELL_H = 140;
 
     private final GraphicsContext gc;
     private final double viewportWidth;
@@ -31,7 +36,8 @@ final class GameHudRenderer {
                    String reloadStatus,
                    List<String> activeEffectLines,
                    double stageDamageMultiplier,
-                   boolean exitOpen) {
+                   boolean exitOpen,
+                   double hudAnimTime) {
         double panelY = 18;
         double accentR = stage.tint().getRed();
         double accentG = stage.tint().getGreen();
@@ -64,6 +70,8 @@ final class GameHudRenderer {
         gc.setFill(Color.WHITE);
         String skillRight = abilityStatus;
         gc.fillText(skillRight, 36 + 288 - textWidth(skillRight, 11), panelY + 90);
+
+        renderSkillIconStrip(character, 232, panelY + 22, 86, 58, hudAnimTime);
 
         gc.setFont(Font.font("Monospaced", 9));
         gc.setFill(Color.color(0.65, 0.72, 0.68));
@@ -141,6 +149,21 @@ final class GameHudRenderer {
             gc.setFill(Color.color(0.45, 0.5, 0.48));
             gc.fillText("(No timed buff — press Q when skill is READY)", panelX + 14, y);
         }
+    }
+
+    private void renderSkillIconStrip(CharacterType character, double x, double y,
+                                      double drawW, double drawH, double hudAnimTime) {
+        SpriteSheet sheet = GameContext.assets().sheet(character.getSkillIconAssetId(),
+                SKILL_ICON_CELL_W, SKILL_ICON_CELL_H);
+        if (sheet == null) {
+            return;
+        }
+        int cols = sheet.columns();
+        if (cols <= 0) {
+            return;
+        }
+        int col = (int) Math.floor(hudAnimTime * 10.0) % cols;
+        sheet.drawFrame(gc, 0, col, snap(x), snap(y), drawW, drawH, false);
     }
 
     private void wrapTextHud(String text, double x, double y, double maxWidth, double lineHeight) {

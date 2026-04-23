@@ -33,6 +33,9 @@ public class CharacterSelectScene {
     private static final double BTN_X = W / 2.0 - BTN_W / 2;
     private static final double BTN_Y = 642;
 
+    private static final int SKILL_CELL_W = 200;
+    private static final int SKILL_CELL_H = 140;
+
     private final Scene scene;
     private final Canvas canvas = new Canvas(W, H);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
@@ -175,6 +178,8 @@ public class CharacterSelectScene {
             gc.setFill(Color.BLACK);
             gc.fillText("SELECTED", x + CARD_W - 80, cardY + 27);
         }
+
+        renderSkillIconMini(character, x + 12, cardY + 14, 40, 28);
     }
 
     private void renderCharacterPreview(CharacterType character, double centerX, double topY, boolean selectedCard) {
@@ -227,6 +232,9 @@ public class CharacterSelectScene {
         String skillLine = "SKILL " + selected.getSkillName().toUpperCase() + " | COOLDOWN "
                 + (int) selected.getSkillCooldown() + "S";
         gc.fillText(skillLine, W / 2.0 - computeW(skillLine, 12) / 2, panelY + 82);
+
+        double skillIconX = W - 88 - 112;
+        renderSkillIconMini(selected, skillIconX, panelY + 18, 104, 73);
     }
 
     private void renderConfirmButton() {
@@ -304,6 +312,19 @@ public class CharacterSelectScene {
 
     private double snap(double value) {
         return Math.round(value / PIXEL) * PIXEL;
+    }
+
+    private void renderSkillIconMini(CharacterType character, double x, double y, double drawW, double drawH) {
+        SpriteSheet sheet = GameContext.assets().sheet(character.getSkillIconAssetId(), SKILL_CELL_W, SKILL_CELL_H);
+        if (sheet == null) {
+            return;
+        }
+        int cols = sheet.columns();
+        if (cols <= 0) {
+            return;
+        }
+        int col = (int) Math.floor(elapsed * 8.0) % cols;
+        sheet.drawFrame(gc, 0, col, snap(x), snap(y), drawW, drawH, false);
     }
 
     public Scene getScene() {
