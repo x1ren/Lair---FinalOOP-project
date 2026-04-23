@@ -75,7 +75,7 @@ public final class StageCatalog {
                         "LAIR Mimic (False Sir Khai)",
                         520,
                         108,
-                        "enemy.khai_mimic",
+                        "enemy.khai_mimic_human",
                         "stage.courtyard",
                         Color.color(0.42, 0.70, 0.24)
                 )

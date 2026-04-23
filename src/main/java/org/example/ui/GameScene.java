@@ -97,6 +97,9 @@ public class GameScene {
     private boolean finished;
     private boolean victory;
 
+    /** False Sir Khai appears human first; morphs to the zombified host sheet after enough damage. */
+    private boolean khaiMimicMorphTriggered;
+
     public GameScene(CharacterType character) {
         this.character = character;
         this.combatProfile = character.getCombatProfile();
@@ -335,6 +338,28 @@ public class GameScene {
                 enemy.setAttacking(true);
             }
         }
+        maybeMorphKhaiMimicBoss();
+    }
+
+    private static final String KHAI_MIMIC_BOSS_NAME = "LAIR Mimic (False Sir Khai)";
+
+    private void maybeMorphKhaiMimicBoss() {
+        if (khaiMimicMorphTriggered || finished || stageIndex != stages.size() - 1) {
+            return;
+        }
+        for (EnemyActor enemy : enemies) {
+            if (!enemy.isBoss() || !KHAI_MIMIC_BOSS_NAME.equals(enemy.getName())) {
+                continue;
+            }
+            double hpRatio = enemy.getHp() / (double) Math.max(1, enemy.getMaxHp());
+            if (hpRatio > 0.50) {
+                continue;
+            }
+            applyEnemySprite(enemy, "enemy.khai_mimic");
+            khaiMimicMorphTriggered = true;
+            setStatus("The mask drops — LAIR sheds the human disguise.");
+            break;
+        }
     }
 
     private void updateEnemyPhysics(EnemyActor enemy, double dt) {
@@ -553,6 +578,7 @@ public class GameScene {
         enemies.clear();
         stageIntroTimer = 4.5;
         stageBossSpawned = false;
+        khaiMimicMorphTriggered = false;
         arena.exitMarker().setActive(false);
         arena.exitMarker().setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
 
@@ -633,6 +659,13 @@ public class GameScene {
                 idle = new AnimationStrip(0, 0, 25, 5);
                 walk = new AnimationStrip(0, 0, 25, 10);
                 attack = new AnimationStrip(0, 0, 25, 14);
+            }
+            case "enemy.khai_mimic_human" -> {
+                // Same art as intro Sir Khai: human on row 0 (8 frames) before the mimic reveals the host body.
+                sheet = assets.sheet("character.sir_khai", 32, 32);
+                idle = new AnimationStrip(0, 0, 8, 5);
+                walk = new AnimationStrip(0, 0, 8, 8);
+                attack = new AnimationStrip(0, 0, 8, 6);
             }
             case "enemy.khai_mimic" -> {
                 // 2560×640 sheet: 20×128px columns × 4 rows of 160px (12 / 14 / 15 / 17 frames per row).
