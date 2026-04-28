@@ -285,14 +285,32 @@ public class GameScene {
     }
 
     private void updateProjectiles(double dt) {
+        double cameraX = arena.cameraX();
+        double screenLeft = cameraX - 40;
+        double screenRight = cameraX + W + 40;
+        double screenBottom = GROUND_Y;
+        
         for (var iterator = projectiles.iterator(); iterator.hasNext();) {
             Projectile projectile = iterator.next();
             projectile.update(dt);
 
             boolean remove = projectile.isExpired(arena.worldWidth(), H);
+            
+            // Remove bullets that go below the visible platform area
+            if (!remove && projectile.getCenterY() > screenBottom) {
+                remove = true;
+            }
+            
             if (!remove) {
+                double bulletX = projectile.getCenterX();
+                double bulletY = projectile.getCenterY();
+                boolean bulletOnScreen = bulletX >= screenLeft && bulletX <= screenRight && bulletY <= screenBottom;
+                
                 for (EnemyActor enemy : enemies) {
-                    if (CollisionManager.circleHitsRect(projectile, enemy)) {
+                    double enemyX = enemy.getCenterX();
+                    boolean enemyOnScreen = enemyX >= screenLeft && enemyX <= screenRight;
+                    
+                    if (bulletOnScreen && enemyOnScreen && CollisionManager.circleHitsRect(projectile, enemy)) {
                         HitPayload payload = projectile.getHitPayload();
                         int direct = payload.getDirectDamage();
                         if (character == CharacterType.IBEN_ANOOS && suppressTimer > 0 && enemy.getSlowTimer() > 0) {

@@ -1,100 +1,159 @@
-@startuml
-skinparam classAttributeIconSize 0
-skinparam packageStyle rectangle
+  @startuml
+  skinparam classAttributeIconSize 0
+  skinparam packageStyle rectangle
 
-package "org.example" {
-  class Main
-}
+  ' Core Application Entry
+  class Main {
+    +{static} WIDTH: int
+    +{static} HEIGHT: int
+    +{static} TITLE: String
+    +start(stage: Stage): void
+    +{static} main(args: String[]): void
+  }
 
-package "org.example.scenes" {
-  class IntroScene
-  class CharacterSelectScene
-  class GameScene
-}
+  ' Main Game Scene
+  class GameScene {
+    -player: PlayerActor
+    -weapon: Weapon
+    -character: CharacterType
+    -enemies: EntityManager<EnemyActor>
+    -projectiles: EntityManager<Projectile>
+    +GameScene(character: CharacterType)
+    +getScene(): Scene
+    -updateGame(dt: double): void
+    -renderGame(): void
+    -fireWeapon(): void
+    -activateAbility(): void
+  }
 
-package "org.example.player" {
-  enum CharacterType
-}
+  ' Abstract Game Loop Engine
+  abstract class GameLoop {
+    #lastTime: long
+    #running: boolean
+    +start(): void
+    +stop(): void
+    #{abstract} update(deltaTime: double): void
+    #{abstract} render(): void
+    +getCurrentFPS(): int
+  }
 
-package "org.example.runtime" {
-  class GameContext
-}
+  ' Abstract Base for Game Objects
+  abstract class GameObject {
+    #x: double
+    #y: double
+    #width: double
+    #height: double
+    +getX(): double
+    +getY(): double
+    +getWidth(): double
+    +getHeight(): double
+    +getCenterX(): double
+    +getCenterY(): double
+    +moveBy(dx: double, dy: double): void
+    +{abstract} render(gc: GraphicsContext): void
+  }
 
-package "org.example.assets" {
-  class AssetRegistry
-  class AssetPreloader
-  class SpriteSheet
-  class SpriteSet
-  enum AnimationState
-}
+  ' Player Character
+  class PlayerActor {
+    -vx: double
+    -vy: double
+    -facing: int
+    -onGround: boolean
+    -defeated: boolean
+    -spriteSet: SpriteSet
+    +step(dt: double): void
+    +updateAnimation(dt: double): void
+    +triggerHit(): void
+    +markDefeated(): void
+    +render(gc: GraphicsContext): void
+  }
 
-package "org.example.audio" {
-  class AudioManager
-}
+  ' Enemy Character
+  class EnemyActor {
+    -health: int
+    -maxHealth: int
+    -damage: int
+    -moveSpeed: double
+    -target: PlayerActor
+    +takeDamage(payload: HitPayload): void
+    +applyStatus(status: StatusApplication): void
+    +isSlowed(): boolean
+    +isBleeding(): boolean
+    +render(gc: GraphicsContext): void
+  }
 
-package "org.example.engines" {
-  abstract class GameLoop
-  class InputHandler
-  class CollisionManager
-}
+  ' Generic Entity Manager (Demonstrates Generics)
+  class "EntityManager<T extends GameObject>" as EntityManager {
+    -entities: List<T>
+    +add(entity: T): void
+    +remove(entity: T): void
+    +getAll(): List<T>
+    +update(dt: double): void
+    +render(gc: GraphicsContext): void
+  }
 
-package "org.example.gameplay" {
-  abstract class GameObject
-  class PlayerActor
-  class EnemyActor
-  class Projectile
-  class PlatformTile
-  class StageDefinition
-  class StageCatalog
-  class "EntityManager<T extends GameObject>" as EntityManager
-}
+  ' Relationships
 
-package "org.example.weapons" {
-  class Weapon
-  class WeaponCatalog
-  enum WeaponType
-}
+  ' Main entry point
+  Main --> GameScene : creates
 
-Main --> GameContext
-GameContext --> IntroScene
-GameContext --> CharacterSelectScene
-GameContext --> GameScene
-GameContext --> AssetRegistry
-GameContext --> AudioManager
-GameContext --> AssetPreloader
-IntroScene --> CharacterSelectScene
-CharacterSelectScene --> GameScene
+  ' GameScene extends GameLoop (Inheritance & Abstraction)
+  GameScene --|> GameLoop : extends
 
-GameScene --> CharacterType
-GameScene --> Weapon
-GameScene --> InputHandler
-GameScene --> CollisionManager
-GameScene --> GameLoop
-GameScene --> PlayerActor
-GameScene --> EnemyActor
-GameScene --> Projectile
-GameScene --> PlatformTile
-GameScene --> StageCatalog
-GameScene --> StageDefinition
-GameScene --> EntityManager
-GameScene --> AssetRegistry
-GameScene --> AudioManager
-GameScene --> SpriteSet
+  ' GameObject hierarchy (Inheritance & Polymorphism)
+  PlayerActor --|> GameObject : extends
+  EnemyActor --|> GameObject : extends
 
-PlayerActor --|> GameObject
-EnemyActor --|> GameObject
-Projectile --|> GameObject
-PlatformTile --|> GameObject
+  ' GameScene uses entities (Composition)
+  GameScene *-- PlayerActor : contains
+  GameScene *-- EntityManager : contains
 
-EntityManager ..> GameObject
-EnemyActor --> PlayerActor
-CharacterType --> WeaponCatalog
-CharacterType --> WeaponType
+  ' EntityManager manages GameObjects (Generics & Polymorphism)
+  EntityManager ..> GameObject : manages <T>
 
-AssetRegistry --> SpriteSheet
-SpriteSet --> SpriteSheet
-SpriteSet --> AnimationState
-WeaponCatalog --> Weapon
-Weapon --> WeaponType
+  ' Enemy targets player (Association)
+  EnemyActor --> PlayerActor : targets
 
-@enduml
+  note right of Main
+    Entry point of the application.
+    Demonstrates encapsulation with
+    static constants and methods.
+  end note
+
+  note right of GameLoop
+    Abstract class demonstrating
+    abstraction and template method
+    pattern. Defines game loop structure.
+  end note
+
+  note right of GameObject
+    Abstract base class for all game
+    entities. Demonstrates abstraction
+    and encapsulation of position/size.
+  end note
+
+  note bottom of EntityManager
+    Generic class demonstrating
+    generics and polymorphism.
+    Can manage any GameObject type.
+  end note
+
+  note left of PlayerActor
+    Concrete implementation
+    demonstrating inheritance
+    and encapsulation.
+  end note
+
+  note left of EnemyActor
+    Demonstrates inheritance,
+    polymorphism, and object
+    relationships (targets player).
+  end note
+
+  note bottom of GameScene
+    Main game controller extending GameLoop.
+    Demonstrates inheritance, composition,
+    and orchestrates all game entities.
+  end note
+
+  @enduml
