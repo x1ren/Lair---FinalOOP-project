@@ -33,13 +33,12 @@ The implemented system already covers these major areas:
 
 ## Main Packages
 
-### `org.example.scenes`
+### `org.example.ui`
 
-Contains the JavaFX scenes that represent the game flow:
+JavaFX presentation: full-screen scenes plus canvas render helpers used by the run loop:
 
-- `IntroScene`
-- `CharacterSelectScene`
-- `GameScene`
+- `IntroScene`, `CharacterSelectScene`, `GameScene`
+- `GameHudRenderer`, `GameVisualRenderer`, `StageArena`
 
 ### `org.example.player`
 
@@ -67,9 +66,9 @@ The in-game HUD shows:
 
 Enemy feedback: slowed enemies get a blue tint; bleeding enemies get a red edge; adaptation states may show brief highlights (see `EnemyTuningState`).
 
-### `org.example.runtime`
+### `org.example.app`
 
-Contains the shared runtime context and app-level scene routing:
+Application shell: shared stage reference and high-level navigation between UI screens:
 
 - `GameContext`
 
@@ -109,9 +108,9 @@ Contains the reusable gameplay model and entity classes:
 - `StageDefinition`
 - `EntityManager<T>`
 
-### `org.example.engines`
+### `org.example.engine`
 
-Contains reusable engine support:
+Frame loop, input capture, and collision checks used by the gameplay scene (kept separate from `ui` so rules stay testable):
 
 - `GameLoop`
 - `InputHandler`

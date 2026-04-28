@@ -2,7 +2,7 @@ package org.example;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
-import org.example.runtime.GameContext;
+import org.example.app.GameContext;
 
 public class Main extends Application {
 

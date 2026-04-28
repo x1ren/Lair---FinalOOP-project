@@ -18,11 +18,11 @@ Abstraction is used to define common behavior without exposing every implementat
 
 Examples:
 
-- [GameLoop.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/engines/GameLoop.java) defines abstract `update()` and `render()` methods.
+- [GameLoop.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/engine/GameLoop.java) defines abstract `update()` and `render()` methods.
 - [GameObject.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/gameplay/GameObject.java) defines a shared gameplay object abstraction.
 - [Weapon.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/weapons/Weapon.java) defines a single reusable weapon data model.
 - [CharacterType.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/player/CharacterType.java) abstracts each survivor into one reusable selection unit.
-- [GameContext.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/runtime/GameContext.java) abstracts shared runtime systems behind one access point.
+- [GameContext.java](/Users/gailleamolong/Documents/School/OOP2/Lair---FinalOOP-project/src/main/java/org/example/app/GameContext.java) abstracts shared runtime systems behind one access point.
 
 ## Inheritance
 

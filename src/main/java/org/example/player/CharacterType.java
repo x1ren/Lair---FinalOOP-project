@@ -163,6 +163,32 @@ public enum CharacterType {
         return spriteAssetId;
     }
 
+    /** Asset id for the signature skill PNG (surname filenames under {@code /assets/ui/skills/}). */
+    public String getSkillIconAssetId() {
+        return switch (this) {
+            case JOSEPH_JIMENEZ -> "ui.skill.jimenez";
+            case IBEN_ANOOS -> "ui.skill.anoos";
+            case ILDE_JAN_FIGUERAS -> "ui.skill.figueras";
+            case GAILE_AMOLONG -> "ui.skill.amolong";
+            case JAMUEL_BACUS -> "ui.skill.bacus";
+        };
+    }
+
+    /**
+     * Pixel-accurate layout for each skill strip (content bbox + uniform cell grid), aligned to roster:
+     * Joseph Jimenez, Iben Anoos, Ilde Jan Figueras, Gaille Amolong, Jamuel Bacus.
+     * Ilde's sheet has no clean tile divisor across its width; it is drawn as one scaled banner.
+     */
+    public SkillIconSpec getSkillIconSpec() {
+        return switch (this) {
+            case JOSEPH_JIMENEZ -> new SkillIconSpec(5, 12, 3993, 121, 121, 121, 33, 9.0);
+            case IBEN_ANOOS -> new SkillIconSpec(16, 41, 9238, 94, 149, 94, 62, 10.0);
+            case ILDE_JAN_FIGUERAS -> new SkillIconSpec(38, 41, 6703, 88, 6703, 88, 1, 0.0);
+            case GAILE_AMOLONG -> new SkillIconSpec(21, 56, 4375, 72, 125, 72, 35, 9.0);
+            case JAMUEL_BACUS -> new SkillIconSpec(14, 83, 4687, 47, 43, 47, 109, 14.0);
+        };
+    }
+
     public boolean isFemaleVoice() {
         return femaleVoice;
     }
