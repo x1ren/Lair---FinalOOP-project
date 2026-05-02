@@ -104,6 +104,7 @@ public class GameScene {
 
     private boolean finished;
     private boolean victory;
+    private boolean paused;
 
     /** False Sir Khai appears human first; morphs to the zombified host sheet after enough damage. */
     private boolean khaiMimicMorphTriggered;
@@ -148,6 +149,23 @@ public class GameScene {
     }
 
     private void updateGame(double dt) {
+        if (!finished && input.isJustPressed(KeyCode.ESCAPE)) {
+            paused = !paused;
+            input.endFrame();
+            return;
+        }
+
+        if (paused) {
+            if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
+                paused = false;
+            } else if (input.isJustPressed(KeyCode.M)) {
+                exitToMainMenu();
+                return;
+            }
+            input.endFrame();
+            return;
+        }
+
         player.updateAnimation(dt);
         shootCooldown = Math.max(0, shootCooldown - dt);
         reloadTimer = Math.max(0, reloadTimer - dt);
@@ -165,14 +183,13 @@ public class GameScene {
             focusShots = 0;
         }
 
-        if (input.isJustPressed(KeyCode.ESCAPE)) {
-            exitToCharacterSelect();
-            return;
-        }
-
         hudAnimTime += dt;
 
         if (finished) {
+            if (input.isJustPressed(KeyCode.ESCAPE)) {
+                exitToCharacterSelect();
+                return;
+            }
             if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
                 exitToCharacterSelect();
                 return;
@@ -1100,7 +1117,7 @@ public class GameScene {
         
         // Apply screen shake if active
         gc.save();
-        if (screenShakeTimer > 0) {
+        if (screenShakeTimer > 0 && !paused) {
             double shakeX = (random.nextDouble() - 0.5) * screenShakeIntensity;
             double shakeY = (random.nextDouble() - 0.5) * screenShakeIntensity;
             gc.translate(shakeX, shakeY);
@@ -1148,6 +1165,8 @@ public class GameScene {
 
         if (finished) {
             hudRenderer.renderEndOverlay(victory);
+        } else if (paused) {
+            hudRenderer.renderPauseOverlay();
         }
     }
 
@@ -1211,6 +1230,12 @@ public class GameScene {
         GameContext.audio().stopBackgroundMusic();
         loop.stop();
         GameContext.showCharacterSelect();
+    }
+
+    private void exitToMainMenu() {
+        GameContext.audio().stopBackgroundMusic();
+        loop.stop();
+        GameContext.showIntro();
     }
 
     public Scene getScene() {

@@ -95,7 +95,7 @@ final class GameHudRenderer {
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
         gc.setFill(Color.color(0.55, 0.62, 0.58));
-        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  R reload  |  Space jump",
+        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  R reload  |  Space jump  |  Esc pause",
                 20, viewportHeight - 12);
 
         if (exitOpen) {
@@ -238,6 +238,37 @@ final class GameHudRenderer {
         gc.setFill(Color.color(0.18, 0.85, 0.32));
         String prompt = "Press ENTER or SPACE to return to character select";
         gc.fillText(prompt, viewportWidth / 2.0 - textWidth(prompt, 14) / 2, viewportHeight - 150);
+    }
+
+    void renderPauseOverlay() {
+        gc.setFill(Color.color(0, 0, 0, 0.62));
+        gc.fillRect(0, 0, viewportWidth, viewportHeight);
+
+        double panelW = 460;
+        double panelH = 260;
+        double panelX = viewportWidth / 2.0 - panelW / 2.0;
+        double panelY = viewportHeight / 2.0 - panelH / 2.0;
+        drawPixelPanel(panelX, panelY, panelW, panelH, Color.color(0.03, 0.04, 0.05, 0.98),
+                Color.color(0.18, 0.82, 0.34, 0.88));
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 32));
+        gc.setFill(Color.WHITE);
+        String title = "GAME PAUSED";
+        gc.fillText(title, viewportWidth / 2.0 - textWidth(title, 32) / 2.0, panelY + 64);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 15));
+        gc.setFill(Color.color(0.18, 0.86, 0.34));
+        String resume = "ESC / ENTER / SPACE  RESUME";
+        gc.fillText(resume, viewportWidth / 2.0 - textWidth(resume, 15) / 2.0, panelY + 128);
+
+        gc.setFill(Color.color(0.74, 0.82, 0.78));
+        String mainMenu = "M  BACK TO MAIN MENU";
+        gc.fillText(mainMenu, viewportWidth / 2.0 - textWidth(mainMenu, 15) / 2.0, panelY + 166);
+
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
+        gc.setFill(Color.color(0.50, 0.58, 0.54));
+        String hint = "Combat, timers, projectiles, and enemy actions are frozen.";
+        gc.fillText(hint, viewportWidth / 2.0 - textWidth(hint, 11) / 2.0, panelY + 212);
     }
 
     private void drawBar(double x, double y, double width, double height, double fill, Color color) {
