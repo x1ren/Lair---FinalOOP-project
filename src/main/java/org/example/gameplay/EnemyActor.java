@@ -31,6 +31,7 @@ public class EnemyActor extends GameObject {
     private AnimationStrip walkStrip;
     private AnimationStrip attackStrip;
     private AnimationStrip castingStrip;
+    private AnimationStrip dashStrip;
     private double animationTime;
     private boolean moving;
     private boolean attacking;
@@ -42,6 +43,8 @@ public class EnemyActor extends GameObject {
     private boolean isCaesarHunos;
     private boolean isSirKhai;
     private boolean isKhaiBossForm;
+    private boolean isVendor;
+    private boolean isSecurityGuard;
     private double skillCooldown;
     private boolean castingSkill;
     private double castingTimer;
@@ -49,6 +52,11 @@ public class EnemyActor extends GameObject {
     private int ultimatePhase = 1;
     private int khaiSkillIndex = 0;
     private double khaiAnimationTimer = 0;
+    private double vendorSummonCooldown = 0;
+    private double securityGuardDashCooldown = 0;
+    private boolean isDashing = false;
+    private double dashDuration = 0;
+    private double dashSpeed = 0;
 
     public EnemyActor(String name, double x, double y, double width, double height,
                       int hp, int maxHp, double speed, Color color, boolean boss) {
@@ -132,6 +140,10 @@ public class EnemyActor extends GameObject {
     public void setCastingStrip(AnimationStrip castingStrip) {
         this.castingStrip = castingStrip;
     }
+    
+    public void setDashStrip(AnimationStrip dashStrip) {
+        this.dashStrip = dashStrip;
+    }
 
     public void setMoving(boolean moving) {
         this.moving = moving;
@@ -153,6 +165,16 @@ public class EnemyActor extends GameObject {
         this.isSirKhai = true;
     }
     
+    public void markAsSecurityGuard() {
+        this.isSecurityGuard = true;
+        this.securityGuardDashCooldown = 3.0;
+    }
+    
+    public void markAsVendor() {
+        this.isVendor = true;
+        this.vendorSummonCooldown = 0.0; // Summon immediately
+    }
+    
     public void markAsKhaiBossForm() {
         this.isKhaiBossForm = true;
         this.skillCooldown = 1.5;
@@ -168,6 +190,54 @@ public class EnemyActor extends GameObject {
     
     public boolean isKhaiBossForm() {
         return isKhaiBossForm;
+    }
+    
+    public boolean isVendor() {
+        return isVendor;
+    }
+    
+    public boolean isSecurityGuard() {
+        return isSecurityGuard;
+    }
+    
+    public double getSecurityGuardDashCooldown() {
+        return securityGuardDashCooldown;
+    }
+    
+    public void setSecurityGuardDashCooldown(double cooldown) {
+        this.securityGuardDashCooldown = cooldown;
+    }
+    
+    public boolean isDashing() {
+        return isDashing;
+    }
+    
+    public void startDash(double speed, double duration) {
+        this.isDashing = true;
+        this.dashSpeed = speed;
+        this.dashDuration = duration;
+    }
+    
+    public void updateDash(double dt) {
+        if (isDashing) {
+            dashDuration -= dt;
+            if (dashDuration <= 0) {
+                isDashing = false;
+                dashSpeed = 0;
+            }
+        }
+    }
+    
+    public double getDashSpeed() {
+        return dashSpeed;
+    }
+    
+    public double getVendorSummonCooldown() {
+        return vendorSummonCooldown;
+    }
+    
+    public void setVendorSummonCooldown(double cooldown) {
+        this.vendorSummonCooldown = cooldown;
     }
     
     public int getKhaiSkillIndex() {
@@ -437,6 +507,11 @@ public class EnemyActor extends GameObject {
         // Caesar Hunos casting animation
         if (isCaesarHunos && castingSkill && castingStrip != null) {
             return castingStrip;
+        }
+        
+        // Security Guard dashing animation
+        if (isSecurityGuard && isDashing && dashStrip != null) {
+            return dashStrip;
         }
         
         if (boss && attackStrip != null && bossMeleeAnimHoldSec > 0) {

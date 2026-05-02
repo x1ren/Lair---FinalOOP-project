@@ -23,7 +23,7 @@ public final class StageCatalog {
                         List.of("enemy.librarian"),
                         "Security Guard",
                         260,
-                        90,
+                        135, // Increased from 90 to 135 for faster mobility
                         "enemy.security_guard",
                         "stage.library",
                         Color.color(0.34, 0.42, 0.52)

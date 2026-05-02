@@ -234,10 +234,6 @@ final class GameHudRenderer {
                     170, 300, viewportWidth - 340, 28);
         }
 
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 14));
-        gc.setFill(Color.color(0.18, 0.85, 0.32));
-        String prompt = "Press ENTER or SPACE to return to character select";
-        gc.fillText(prompt, viewportWidth / 2.0 - textWidth(prompt, 14) / 2, viewportHeight - 150);
     }
 
     void renderPauseOverlay() {
