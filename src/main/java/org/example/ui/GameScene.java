@@ -44,6 +44,8 @@ public class GameScene {
     private static final double GROUND_Y = 620;
     private static final double GRAVITY = 1500;
     private static final double PIXEL = 4;
+    private static final double PAUSE_MENU_BUTTON_W = 288;
+    private static final double PAUSE_MENU_BUTTON_H = 42;
 
     private final Scene scene;
     private final Canvas canvas = new Canvas(W, H);
@@ -104,6 +106,7 @@ public class GameScene {
 
     private boolean finished;
     private boolean victory;
+    private boolean paused;
 
     /** False Sir Khai appears human first; morphs to the zombified host sheet after enough damage. */
     private boolean khaiMimicMorphTriggered;
@@ -148,6 +151,23 @@ public class GameScene {
     }
 
     private void updateGame(double dt) {
+        if (!finished && input.isJustPressed(KeyCode.ESCAPE)) {
+            paused = !paused;
+            input.endFrame();
+            return;
+        }
+
+        if (paused) {
+            if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
+                paused = false;
+            } else if (input.isMouseLeftJustClicked() && isPauseMenuButtonHit()) {
+                exitToMainMenu();
+                return;
+            }
+            input.endFrame();
+            return;
+        }
+
         player.updateAnimation(dt);
         shootCooldown = Math.max(0, shootCooldown - dt);
         reloadTimer = Math.max(0, reloadTimer - dt);
@@ -165,14 +185,13 @@ public class GameScene {
             focusShots = 0;
         }
 
-        if (input.isJustPressed(KeyCode.ESCAPE)) {
-            exitToCharacterSelect();
-            return;
-        }
-
         hudAnimTime += dt;
 
         if (finished) {
+            if (input.isJustPressed(KeyCode.ESCAPE)) {
+                exitToCharacterSelect();
+                return;
+            }
             if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
                 exitToCharacterSelect();
                 return;
@@ -1100,7 +1119,7 @@ public class GameScene {
         
         // Apply screen shake if active
         gc.save();
-        if (screenShakeTimer > 0) {
+        if (screenShakeTimer > 0 && !paused) {
             double shakeX = (random.nextDouble() - 0.5) * screenShakeIntensity;
             double shakeY = (random.nextDouble() - 0.5) * screenShakeIntensity;
             gc.translate(shakeX, shakeY);
@@ -1148,6 +1167,8 @@ public class GameScene {
 
         if (finished) {
             hudRenderer.renderEndOverlay(victory);
+        } else if (paused) {
+            hudRenderer.renderPauseOverlay();
         }
     }
 
@@ -1211,6 +1232,21 @@ public class GameScene {
         GameContext.audio().stopBackgroundMusic();
         loop.stop();
         GameContext.showCharacterSelect();
+    }
+
+    private void exitToMainMenu() {
+        GameContext.audio().stopBackgroundMusic();
+        loop.stop();
+        GameContext.showIntro();
+    }
+
+    private boolean isPauseMenuButtonHit() {
+        double buttonX = W / 2.0 - PAUSE_MENU_BUTTON_W / 2.0;
+        double buttonY = H / 2.0 + 10;
+        return input.getMouseX() >= buttonX
+                && input.getMouseX() <= buttonX + PAUSE_MENU_BUTTON_W
+                && input.getMouseY() >= buttonY
+                && input.getMouseY() <= buttonY + PAUSE_MENU_BUTTON_H;
     }
 
     public Scene getScene() {

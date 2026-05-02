@@ -56,7 +56,8 @@ Contains the playable character data and fixed loadout stats:
 | `Q` | Activate skill (per survivor; see cooldown bar) |
 | `R` | Reload |
 | `Space` | Jump |
-| `Esc` | Return to character select |
+| `Esc` | Pause or resume gameplay |
+| Click **Back to Main Menu** | Return to the main intro/loading screen from pause menu |
 
 The in-game HUD shows:
 
