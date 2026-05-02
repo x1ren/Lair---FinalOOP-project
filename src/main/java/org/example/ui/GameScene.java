@@ -15,6 +15,7 @@ import org.example.engine.CollisionManager;
 import org.example.engine.GameLoop;
 import org.example.engine.InputHandler;
 import org.example.gameplay.BleedConfig;
+import org.example.gameplay.BossSkill;
 import org.example.gameplay.CombatScaling;
 import org.example.gameplay.EnemyActor;
 import org.example.gameplay.EntityManager;
@@ -23,6 +24,8 @@ import org.example.gameplay.PlatformTile;
 import org.example.gameplay.PlayerActor;
 import org.example.gameplay.Projectile;
 import org.example.gameplay.SlowConfig;
+import org.example.gameplay.SpikeEffect;
+import org.example.gameplay.SplittingSpike;
 import org.example.gameplay.StageCatalog;
 import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterCombatProfile;
@@ -55,6 +58,9 @@ public class GameScene {
     private final PlayerActor player;
     private final EntityManager<EnemyActor> enemies = new EntityManager<>();
     private final EntityManager<Projectile> projectiles = new EntityManager<>();
+    private final EntityManager<BossSkill> bossSkills = new EntityManager<>();
+    private final EntityManager<SpikeEffect> spikeEffects = new EntityManager<>();
+    private final EntityManager<SplittingSpike> splittingSpikes = new EntityManager<>();
     private final List<StageDefinition> stages = StageCatalog.buildStoryStages();
     private final StageArena arena = new StageArena(W, GROUND_Y);
     private final GameVisualRenderer visualRenderer = new GameVisualRenderer(gc, assets, W, H, GROUND_Y);
@@ -101,6 +107,9 @@ public class GameScene {
 
     /** False Sir Khai appears human first; morphs to the zombified host sheet after enough damage. */
     private boolean khaiMimicMorphTriggered;
+    
+    private double screenShakeTimer;
+    private double screenShakeIntensity;
 
     public GameScene(CharacterType character) {
         this.character = character;
@@ -183,9 +192,13 @@ public class GameScene {
         handlePlayerInput();
         updatePlayerPhysics(dt);
         updateProjectiles(dt);
+        updateBossSkills(dt);
+        updateSpikeEffects(dt);
+        updateSplittingSpikes(dt);
         updateEnemies(dt);
         updateStageExit();
         updateCamera();
+        updateScreenShake(dt);
 
         if (hp <= 0) {
             finished = true;
@@ -347,24 +360,33 @@ public class GameScene {
             enemy.setAttacking(false);
             enemy.updateStatusEffects(dt);
             enemy.setAttackCooldown(Math.max(0, enemy.getAttackCooldown() - dt));
-            updateEnemyPhysics(enemy, dt);
-            enemy.chase(player, dt, 20, arena.worldWidth() - enemy.getWidth() - 20,
-                    combatProfile.enemySlowMoveFactor());
+            
+            // Caesar Hunos special behavior
+            if (enemy.isCaesarHunos()) {
+                updateCaesarHunosBehavior(enemy, dt);
+            } else if (enemy.isKhaiBossForm()) {
+                updateKhaiBossBehavior(enemy, dt);
+            } else {
+                updateEnemyPhysics(enemy, dt);
+                enemy.chase(player, dt, 20, arena.worldWidth() - enemy.getWidth() - 20,
+                        combatProfile.enemySlowMoveFactor());
 
-            if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
-                applyDamage(enemy.isBoss() ? 22 : 12);
-                double baseCd = enemy.isBoss() ? 0.8 : 1.1;
-                enemy.setAttackCooldown(baseCd * enemy.getTuningState().attackCooldownMultiplier());
-                enemy.setAttacking(true);
+                if (enemy.getAttackCooldown() <= 0 && CollisionManager.intersects(enemy, player)) {
+                    applyDamage(enemy.isBoss() ? 22 : 12);
+                    double baseCd = enemy.isBoss() ? 0.8 : 1.1;
+                    enemy.setAttackCooldown(baseCd * enemy.getTuningState().attackCooldownMultiplier());
+                    enemy.setAttacking(true);
+                }
             }
         }
         maybeMorphKhaiMimicBoss();
     }
 
     private static final String KHAI_MIMIC_BOSS_NAME = "LAIR Mimic (False Sir Khai)";
+    private static final int KHAI_MIMIC_STAGE_INDEX = 3; // Stage 4 (0-indexed)
 
     private void maybeMorphKhaiMimicBoss() {
-        if (khaiMimicMorphTriggered || finished || stageIndex != stages.size() - 1) {
+        if (khaiMimicMorphTriggered || finished || stageIndex != KHAI_MIMIC_STAGE_INDEX) {
             return;
         }
         for (EnemyActor enemy : enemies) {
@@ -380,6 +402,278 @@ public class GameScene {
             setStatus("The mask drops — LAIR sheds the human disguise.");
             break;
         }
+    }
+    
+    private void updateCaesarHunosBehavior(EnemyActor caesar, double dt) {
+        // Caesar stays in place, only uses physics for gravity
+        updateEnemyPhysics(caesar, dt);
+        
+        // Update casting state
+        caesar.updateCasting(dt);
+        
+        // Update skill cooldown
+        double currentCooldown = caesar.getSkillCooldown();
+        caesar.setSkillCooldown(Math.max(0, currentCooldown - dt));
+        
+        // Check if ready to cast a new skill
+        if (caesar.getSkillCooldown() <= 0 && !caesar.isCastingSkill()) {
+            double hpRatio = caesar.getHp() / (double) Math.max(1, caesar.getMaxHp());
+            
+            if (hpRatio < 0.4) {
+                // Use ultimate abilities - more frequent attacks
+                String ultimateType = "ultimate" + caesar.getUltimatePhase();
+                caesar.startCasting(ultimateType);
+                caesar.setSkillCooldown(2.5); // Reduced from 3.5
+                
+                // Keep using idle animation during casting (no skill stripe images)
+                // The purple bullet projectiles will be spawned when casting completes
+            } else {
+                // Use regular skills (randomize between skill1 and skill2)
+                String skillType = random.nextBoolean() ? "skill1" : "skill2";
+                caesar.startCasting(skillType);
+                caesar.setSkillCooldown(1.8); // Reduced from 2.5
+                
+                // Keep using idle animation during casting (no skill stripe images)
+                // The purple bullet projectiles will be spawned when casting completes
+            }
+        }
+        
+        // Check if casting is complete and skill should be fired
+        if (caesar.isReadyToCast()) {
+            fireCaesarSkill(caesar);
+            caesar.finishCasting();
+        }
+    }
+    
+    private void fireCaesarSkill(EnemyActor caesar) {
+        String skillType = caesar.getCurrentSkillType();
+        double centerX = caesar.getCenterX();
+        double centerY = caesar.getCenterY();
+        
+        if ("skill1".equals(skillType)) {
+            // Wave Attack - multiple horizontal waves with slight delays
+            int waveCount = 15;
+            double waveSpacing = 35;
+            double startX = centerX - (waveCount / 2.0 * waveSpacing);
+            for (int i = 0; i < waveCount; i++) {
+                double x = startX + (i * waveSpacing);
+                double vx = 0;
+                double vy = 280 + (i % 3) * 30; // Varying speeds
+                bossSkills.add(new BossSkill("Wave", x, centerY, vx, vy, 15, "wave"));
+            }
+            setStatus("Caesar Hunos unleashes a Wave Attack!");
+        } else if ("skill2".equals(skillType)) {
+            // Rain Attack - heavy projectile rain from above
+            int rainCount = 30;
+            double screenWidth = 1280;
+            for (int i = 0; i < rainCount; i++) {
+                double x = random.nextDouble() * screenWidth;
+                double y = -50 - (random.nextDouble() * 100); // Staggered heights
+                double vx = (random.nextDouble() - 0.5) * 120;
+                double vy = 250 + random.nextDouble() * 150;
+                bossSkills.add(new BossSkill("Rain", x, y, vx, vy, 12, "rain"));
+            }
+            setStatus("Caesar Hunos summons a Rain of Projectiles!");
+        } else if ("ultimate1".equals(skillType)) {
+            // Random Barrage - chaotic projectiles in all directions
+            int barrageCount = 35;
+            for (int i = 0; i < barrageCount; i++) {
+                double angle = random.nextDouble() * Math.PI * 2;
+                double speed = 200 + random.nextDouble() * 200;
+                double vx = Math.cos(angle) * speed;
+                double vy = Math.sin(angle) * speed;
+                bossSkills.add(new BossSkill("Barrage", centerX, centerY, vx, vy, 18, "barrage"));
+            }
+            caesar.toggleUltimatePhase();
+            setStatus("Caesar Hunos unleashes a Random Barrage!");
+        } else if ("ultimate2".equals(skillType)) {
+            // Spiral Storm - massive multi-layered spiral
+            int spiralLayers = 4;
+            int projectilesPerLayer = 12;
+            double spiralSpeed = 280;
+            for (int layer = 0; layer < spiralLayers; layer++) {
+                for (int i = 0; i < projectilesPerLayer; i++) {
+                    double angle = (i * Math.PI * 2) / projectilesPerLayer + (layer * 0.4);
+                    double speed = spiralSpeed + (layer * 40);
+                    double vx = Math.cos(angle) * speed;
+                    double vy = Math.sin(angle) * speed;
+                    bossSkills.add(new BossSkill("Spiral", centerX, centerY, vx, vy, 20, "spiral"));
+                }
+            }
+            caesar.toggleUltimatePhase();
+            setStatus("Caesar Hunos creates a Spiral Storm!");
+        }
+    }
+    
+    private void updateBossSkills(double dt) {
+        for (var iterator = bossSkills.iterator(); iterator.hasNext();) {
+            BossSkill skill = iterator.next();
+            skill.update(dt);
+            
+            boolean remove = skill.isExpired();
+            
+            // Check collision with player
+            if (!remove && CollisionManager.intersects(skill, player)) {
+                applyDamage(skill.getDamage());
+                remove = true;
+            }
+            
+            if (remove) {
+                iterator.remove();
+            }
+        }
+    }
+    
+    private void updateKhaiBossBehavior(EnemyActor khai, double dt) {
+        // Khai stays stationary, only uses physics for gravity
+        updateEnemyPhysics(khai, dt);
+        
+        // Update animation timer
+        khai.updateKhaiAnimation(dt);
+        
+        // Update skill cooldown
+        double currentCooldown = khai.getSkillCooldown();
+        khai.setSkillCooldown(Math.max(0, currentCooldown - dt));
+        
+        // Check if animation is playing and should fire skill
+        if (khai.getKhaiAnimationTimer() > 0 && khai.getKhaiAnimationTimer() <= dt) {
+            // Animation just finished, fire the skill
+            int skillIndex = khai.getKhaiSkillIndex();
+            fireKhaiSkill(khai, skillIndex);
+            
+            // Reset to idle animation
+            SpriteSheet idleSheet = assets.sheet("enemy.khai_boss_form", 128, 128);
+            if (idleSheet != null) {
+                AnimationStrip idle = new AnimationStrip(0, 0, 1, 1);
+                khai.setSpriteSheet(idleSheet, idle, idle, idle);
+            }
+            
+            khai.advanceKhaiSkill();
+        }
+        
+        // Check if ready to start next skill animation
+        if (khai.getSkillCooldown() <= 0 && khai.getKhaiAnimationTimer() <= 0) {
+            int skillIndex = khai.getKhaiSkillIndex();
+            
+            // Update sprite sheet to show skill animation
+            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 128);
+            if (sheet != null) {
+                AnimationStrip skillAnim = new AnimationStrip(0, skillIndex + 1, 1, 1);
+                khai.setSpriteSheet(sheet, skillAnim, skillAnim, skillAnim);
+            }
+            
+            // Set animation timer (skill fires when this reaches 0)
+            khai.setKhaiAnimationTimer(0.6);
+        }
+    }
+    
+    private void fireKhaiSkill(EnemyActor khai, int skillIndex) {
+        double centerX = khai.getCenterX();
+        double centerY = khai.getCenterY();
+        double worldWidth = arena.worldWidth();
+        
+        switch (skillIndex) {
+            case 0 -> {
+                // Stomp - ground shake + spikes from below (cap at 100 total spike effects)
+                if (spikeEffects.view().size() < 100) {
+                    screenShakeTimer = 0.8;
+                    screenShakeIntensity = 12;
+                    
+                    // Spawn ground spikes across the arena
+                    for (int i = 0; i < 8; i++) {
+                        double x = 100 + (i * (worldWidth - 200) / 7);
+                        spikeEffects.add(new SpikeEffect("ground", x, GROUND_Y, 20));
+                    }
+                    setStatus("Khai stomps! Spikes erupt from below!");
+                }
+                khai.setSkillCooldown(1.5);  // Reduced from 2.0 to 1.5
+            }
+            case 1 -> {
+                // Scream - spikes rain from above (cap at 100 total spike effects)
+                if (spikeEffects.view().size() < 100) {
+                    for (int i = 0; i < 10; i++) {
+                        double x = 80 + random.nextDouble() * (worldWidth - 160);
+                        spikeEffects.add(new SpikeEffect("rain", x, -50, 18));
+                    }
+                    setStatus("Khai screams! Spikes rain from above!");
+                }
+                khai.setSkillCooldown(1.6);  // Reduced from 2.2 to 1.6
+            }
+            case 2 -> {
+                // Throw - splitting spike projectile (cap at 50 total splitting spikes)
+                if (splittingSpikes.view().size() < 50) {
+                    double dx = player.getCenterX() - centerX;
+                    double dy = player.getCenterY() - centerY;
+                    double distance = Math.sqrt(dx * dx + dy * dy);
+                    double vx = (dx / distance) * 450;  // Increased from 300 to 450
+                    double vy = (dy / distance) * 450;  // Increased from 300 to 450
+                    splittingSpikes.add(new SplittingSpike(centerX, centerY, vx, vy, 22));
+                    setStatus("Khai throws a splitting spike!");
+                }
+                khai.setSkillCooldown(1.8);  // Reduced from 2.5 to 1.8
+            }
+        }
+    }
+    
+    private void updateSpikeEffects(double dt) {
+        for (var iterator = spikeEffects.iterator(); iterator.hasNext();) {
+            SpikeEffect spike = iterator.next();
+            spike.update(dt);
+            
+            boolean remove = spike.isExpired();
+            
+            // Check collision with player
+            if (!remove && !spike.hasHit() && CollisionManager.intersects(spike, player)) {
+                applyDamage(spike.getDamage());
+                spike.markHit();
+            }
+            
+            if (remove) {
+                iterator.remove();
+            }
+        }
+    }
+    
+    private void updateSplittingSpikes(double dt) {
+        List<SplittingSpike> newSpikes = new ArrayList<>();
+        
+        for (var iterator = splittingSpikes.iterator(); iterator.hasNext();) {
+            SplittingSpike spike = iterator.next();
+            spike.update(dt);
+            
+            boolean remove = spike.isExpired();
+            
+            // Check if should split into three (only if we won't exceed reasonable limit)
+            if (spike.shouldSplit() && splittingSpikes.view().size() + newSpikes.size() < 50) {
+                spike.markSplit();
+                double x = spike.getCenterX();
+                double y = spike.getCenterY();
+                
+                // Create three spikes in different directions - faster speeds
+                newSpikes.add(new SplittingSpike(x, y, -280, -150, spike.getDamage()));  // Increased from -200, -100
+                newSpikes.add(new SplittingSpike(x, y, 0, -350, spike.getDamage()));     // Increased from 0, -250
+                newSpikes.add(new SplittingSpike(x, y, 280, -150, spike.getDamage()));   // Increased from 200, -100
+            }
+            
+            // Check collision with player
+            if (!remove && CollisionManager.intersects(spike, player)) {
+                applyDamage(spike.getDamage());
+                remove = true;
+            }
+            
+            if (remove) {
+                iterator.remove();
+            }
+        }
+        
+        // Add new spikes after iteration is complete to avoid concurrent modification
+        for (SplittingSpike spike : newSpikes) {
+            splittingSpikes.add(spike);
+        }
+    }
+    
+    private void updateScreenShake(double dt) {
+        screenShakeTimer = Math.max(0, screenShakeTimer - dt);
     }
 
     private void updateEnemyPhysics(EnemyActor enemy, double dt) {
@@ -600,6 +894,9 @@ public class GameScene {
         stageIndex = newIndex;
         projectiles.clear();
         enemies.clear();
+        bossSkills.clear();
+        spikeEffects.clear();
+        splittingSpikes.clear();
         stageIntroTimer = 4.5;
         stageBossSpawned = false;
         khaiMimicMorphTriggered = false;
@@ -634,12 +931,45 @@ public class GameScene {
     private void spawnBoss(StageDefinition stage) {
         stageBossSpawned = true;
         double x = arena.bossSpawnX(stageIndex == stages.size() - 1);
+        
+        // Different boss sizes
+        double width = 74;
+        double height = 96;
+        
+        if ("Caesar Hunos".equals(stage.bossName())) {
+            // Caesar Hunos is 3x bigger
+            width = 74 * 3;
+            height = 96 * 3;
+        } else if ("Khai (Boss Form)".equals(stage.bossName())) {
+            // Khai Boss Form is 3x bigger (128x128 sprite scaled up)
+            width = 128 * 2.5;
+            height = 128 * 2.5;
+        } else if ("LAIR Mimic (False Sir Khai)".equals(stage.bossName()) ||
+                   "Security Guard".equals(stage.bossName()) ||
+                   "Mutated Vendor".equals(stage.bossName())) {
+            // Sir Khai, Security Guard, and Mutated Vendor are 2x bigger
+            width = 74 * 2;
+            height = 96 * 2;
+        }
+        
         // Spawn boss high above so they fall and land on platforms
-        EnemyActor enemy = new EnemyActor(stage.bossName(), x, 50, 74, 96,
+        EnemyActor enemy = new EnemyActor(stage.bossName(), x, 50, width, height,
                 stage.bossHealth(), stage.bossHealth(), stage.bossSpeed(), stage.tint(), true);
         if (stage.bossSpriteId() != null) {
             applyEnemySprite(enemy, stage.bossSpriteId());
         }
+        
+        // Mark Caesar Hunos for special behavior
+        if ("Caesar Hunos".equals(stage.bossName())) {
+            enemy.markAsCaesarHunos();
+        } else if ("LAIR Mimic (False Sir Khai)".equals(stage.bossName()) ||
+                   "Security Guard".equals(stage.bossName()) ||
+                   "Mutated Vendor".equals(stage.bossName())) {
+            enemy.markAsSirKhai();
+        } else if ("Khai (Boss Form)".equals(stage.bossName())) {
+            enemy.markAsKhaiBossForm();
+        }
+        
         enemies.add(enemy);
     }
 
@@ -680,12 +1010,11 @@ public class GameScene {
                 attack = new AnimationStrip(1, 0, 8, 8);
             }
             case "enemy.caesar_hunos" -> {
-                sheet = assets.sheet(spriteId, 120, 120);
-                // caesar_hunos_idle.png: one row of 120×120 cells; column 3 is fully transparent. A 0..5 walk loop
-                // flashes empty every sixth frame. Use opaque columns 4–7 for walk; attack uses 0–2 only (skip col 3).
-                idle = new AnimationStrip(0, 0, 1, 0);
-                walk = new AnimationStrip(0, 4, 4, 2.5);
-                attack = new AnimationStrip(0, 0, 3, 8);
+                sheet = assets.sheet("enemy.caesar_hunos", 120, 120);
+                // CaesarHunos_Idle.png has multiple frames - use them for idle animation
+                idle = new AnimationStrip(0, 0, 8, 4);  // 8 frames at 4 fps for smooth idle
+                walk = new AnimationStrip(0, 0, 8, 4);  // Same as idle since he doesn't move
+                attack = new AnimationStrip(0, 0, 8, 4);
             }
             case "enemy.khai_mimic_human" -> {
                 // khai_with_zombified.png 256×128 @ 32×32: row 0 has 8 opaque cells; row 1 cols 4–7 are fully empty.
@@ -701,6 +1030,13 @@ public class GameScene {
                 idle = new AnimationStrip(0, 0, 12, 3);
                 walk = new AnimationStrip(1, 0, 14, 4);
                 attack = new AnimationStrip(3, 0, 17, 7);
+            }
+            case "enemy.khai_boss_form" -> {
+                // khai (boss form).png has 4 columns: Idle, Stomp, Scream, Throw
+                sheet = assets.sheet(spriteId, 128, 128);
+                idle = new AnimationStrip(0, 0, 1, 1);  // Column 1: Idle
+                walk = new AnimationStrip(0, 0, 1, 1);  // Stationary boss
+                attack = new AnimationStrip(0, 0, 1, 1);
             }
             default -> {
                 sheet = assets.sheet(spriteId, 32, 32);
@@ -735,7 +1071,7 @@ public class GameScene {
 
     private String getStageClearMessage(StageDefinition stage) {
         if (stageIndex == stages.size() - 1) {
-            return "The mimic collapses.";
+            return "Khai's monstrous form collapses. The nightmare is over.";
         }
         if ("Caesar Hunos".equals(stage.bossName())) {
             return "Caesar dropped the stabilized LAIR vial.";
@@ -761,6 +1097,15 @@ public class GameScene {
         StageDefinition stage = stages.get(stageIndex);
 
         visualRenderer.renderBackground(stage, loadBackdrop(stage), arena.cameraX(), arena.worldWidth());
+        
+        // Apply screen shake if active
+        gc.save();
+        if (screenShakeTimer > 0) {
+            double shakeX = (random.nextDouble() - 0.5) * screenShakeIntensity;
+            double shakeY = (random.nextDouble() - 0.5) * screenShakeIntensity;
+            gc.translate(shakeX, shakeY);
+        }
+        
         gc.save();
         gc.translate(-arena.cameraX(), 0);
         
@@ -778,8 +1123,13 @@ public class GameScene {
         visualRenderer.renderMuzzleFlash(muzzleFlashTimer, muzzleFlashDuration,
                 muzzleFlashX, muzzleFlashY, muzzleFlashAngle);
         projectiles.renderAll(gc);
+        bossSkills.renderAll(gc);
+        spikeEffects.renderAll(gc);
+        splittingSpikes.renderAll(gc);
         
         gc.restore();
+        gc.restore();
+        
         hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo,
                 character.getSkillName(), character.getSkillEffectSummary(), "[Q]",
                 getAbilityMeterFill(), getAbilityStatusText(), getReloadStatusText(),
