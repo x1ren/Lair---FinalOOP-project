@@ -36,6 +36,7 @@ public final class AssetRegistry {
         registerImage("stage.canteen", "/assets/stages/canteen.png");
         registerImage("stage.gym", "/assets/stages/gym.png");
         registerImage("stage.courtyard", "/assets/stages/courtyard.png");
+        registerImage("stage.covered_court", "/assets/stages/covered_court.png");
 
         registerImage("enemy.librarian", "/assets/stages/enemies/librarian.png");
         registerImage("enemy.security_guard", "/assets/stages/enemies/security_guard.png");
@@ -45,9 +46,21 @@ public final class AssetRegistry {
         registerImage("enemy.janitor", "/assets/stages/enemies/janitor.png");
         registerImage("character.sir_khai", "/assets/stages/enemies/khai_with_zombified.png");
         registerImage("enemy.khai_mimic", "/assets/stages/enemies/khai_boss_mimic.png");
-        registerImage("enemy.caesar_hunos", "/assets/stages/enemies/caesar_hunos_idle.png");
+        registerImage("enemy.caesar_hunos", "/assets/stages/enemies/CaesarHunos_Idle.png");
+        registerImage("boss.caesar.casting_skill1", "/assets/stages/enemies/Casting_Skill1.png");
+        registerImage("boss.caesar.casting_skill2", "/assets/stages/enemies/Casting_Skill2.png");
+        registerImage("boss.caesar.casting_ultimate", "/assets/stages/enemies/Casting_Ultimate.png");
+        registerImage("boss.caesar.skill1_effect", "/assets/stages/enemies/Skill1_ThunderSmoke.png");
+        registerImage("boss.caesar.skill2_effect", "/assets/stages/enemies/Skill2_LaserEye.png");
+        registerImage("boss.caesar.ultimate_phase1", "/assets/stages/enemies/Ultimate_Phase1.png");
+        registerImage("boss.caesar.ultimate_phase2", "/assets/stages/enemies/Ultimate_Phase2.png");
+        registerImage("boss.caesar.hunos_idle", "/assets/stages/enemies/Hunos_Idle.png");
+        registerImage("boss.caesar.hunos_walk", "/assets/stages/enemies/Hunos_Walk.png");
+        
         registerImage("intro.caesar_human_idle", "/assets/stages/enemies/caesar_human_idle.png");
         registerImage("intro.caesar_human_walk", "/assets/stages/enemies/caesar_human_walk.png");
+        
+        registerImage("enemy.khai_boss_form", "/assets/stages/enemies/khai_boss_form.png");
 
         registerImage("ui.skill.jimenez", "/assets/ui/skills/Jimenez_Skill.png");
         registerImage("ui.skill.anoos", "/assets/ui/skills/Anoos_Skill.png");

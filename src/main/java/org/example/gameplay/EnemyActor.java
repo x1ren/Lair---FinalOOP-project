@@ -30,12 +30,25 @@ public class EnemyActor extends GameObject {
     private AnimationStrip idleStrip;
     private AnimationStrip walkStrip;
     private AnimationStrip attackStrip;
+    private AnimationStrip castingStrip;
     private double animationTime;
     private boolean moving;
     private boolean attacking;
     /** Keeps {@link #attackStrip} visible briefly after a melee hit so bosses do not flash attack for one frame. */
     private double bossMeleeAnimHoldSec;
     private int facing = -1;
+    
+    // Caesar Hunos boss-specific fields
+    private boolean isCaesarHunos;
+    private boolean isSirKhai;
+    private boolean isKhaiBossForm;
+    private double skillCooldown;
+    private boolean castingSkill;
+    private double castingTimer;
+    private String currentSkillType;
+    private int ultimatePhase = 1;
+    private int khaiSkillIndex = 0;
+    private double khaiAnimationTimer = 0;
 
     public EnemyActor(String name, double x, double y, double width, double height,
                       int hp, int maxHp, double speed, Color color, boolean boss) {
@@ -115,6 +128,10 @@ public class EnemyActor extends GameObject {
         this.walkStrip = walkStrip;
         this.attackStrip = attackStrip;
     }
+    
+    public void setCastingStrip(AnimationStrip castingStrip) {
+        this.castingStrip = castingStrip;
+    }
 
     public void setMoving(boolean moving) {
         this.moving = moving;
@@ -125,6 +142,99 @@ public class EnemyActor extends GameObject {
             bossMeleeAnimHoldSec = 0.12;
         }
         this.attacking = attacking;
+    }
+    
+    public void markAsCaesarHunos() {
+        this.isCaesarHunos = true;
+        this.skillCooldown = 2.0;
+    }
+    
+    public void markAsSirKhai() {
+        this.isSirKhai = true;
+    }
+    
+    public void markAsKhaiBossForm() {
+        this.isKhaiBossForm = true;
+        this.skillCooldown = 1.5;
+    }
+    
+    public boolean isCaesarHunos() {
+        return isCaesarHunos;
+    }
+    
+    public boolean isSirKhai() {
+        return isSirKhai;
+    }
+    
+    public boolean isKhaiBossForm() {
+        return isKhaiBossForm;
+    }
+    
+    public int getKhaiSkillIndex() {
+        return khaiSkillIndex;
+    }
+    
+    public void advanceKhaiSkill() {
+        khaiSkillIndex = (khaiSkillIndex + 1) % 3;
+    }
+    
+    public double getKhaiAnimationTimer() {
+        return khaiAnimationTimer;
+    }
+    
+    public void setKhaiAnimationTimer(double timer) {
+        khaiAnimationTimer = timer;
+    }
+    
+    public void updateKhaiAnimation(double dt) {
+        if (khaiAnimationTimer > 0) {
+            khaiAnimationTimer -= dt;
+        }
+    }
+    
+    public double getSkillCooldown() {
+        return skillCooldown;
+    }
+    
+    public void setSkillCooldown(double cooldown) {
+        this.skillCooldown = cooldown;
+    }
+    
+    public boolean isCastingSkill() {
+        return castingSkill;
+    }
+    
+    public void startCasting(String skillType) {
+        this.castingSkill = true;
+        this.castingTimer = 1.2;
+        this.currentSkillType = skillType;
+    }
+    
+    public void updateCasting(double dt) {
+        if (castingSkill && castingTimer > 0) {
+            castingTimer -= dt;
+        }
+    }
+    
+    public String getCurrentSkillType() {
+        return currentSkillType;
+    }
+    
+    public boolean isReadyToCast() {
+        return castingSkill && castingTimer <= 0;
+    }
+    
+    public void finishCasting() {
+        castingSkill = false;
+        castingTimer = 0;
+    }
+    
+    public int getUltimatePhase() {
+        return ultimatePhase;
+    }
+    
+    public void toggleUltimatePhase() {
+        ultimatePhase = ultimatePhase == 1 ? 2 : 1;
     }
 
     public void stepVertical(double dt) {
@@ -219,6 +329,12 @@ public class EnemyActor extends GameObject {
     }
 
     public void chase(PlayerActor player, double dt, double minX, double maxX, double slowMoveFactor) {
+        // Caesar Hunos and Khai Boss Form don't chase - they stay in place
+        if (isCaesarHunos || isKhaiBossForm) {
+            moving = false;
+            return;
+        }
+        
         double cx = player.getCenterX() - getCenterX();
         double direction = Math.signum(cx);
         double tuningMult = tuningState.moveMultiplier();
@@ -248,12 +364,26 @@ public class EnemyActor extends GameObject {
         double x = Math.round(getX());
         double y = Math.round(getY());
         double pixel = boss ? 6 : 4;
+        
+        // Different padding for different boss sizes
+        double paddingX = boss ? 6 : 4;
+        double paddingY = boss ? 10 : 6;
+        if (isCaesarHunos) {
+            paddingX = 18;
+            paddingY = 30;
+        } else if (isKhaiBossForm) {
+            paddingX = 16;
+            paddingY = 28;
+        } else if (isSirKhai) {
+            paddingX = 12;
+            paddingY = 20;
+        }
 
         if (spriteSheet != null) {
             AnimationStrip strip = resolveStrip();
             int row = strip == null ? 0 : strip.row();
             int column = strip == null ? 0 : strip.frameAt(animationTime);
-            spriteSheet.drawFrame(gc, row, column, x - (boss ? 6 : 4), y - (boss ? 10 : 6), getWidth() + (boss ? 12 : 8), getHeight() + (boss ? 12 : 8), facing > 0);
+            spriteSheet.drawFrame(gc, row, column, x - paddingX, y - paddingY, getWidth() + paddingX * 2, getHeight() + paddingY * 2, facing > 0);
         } else {
             gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
             gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
@@ -304,6 +434,11 @@ public class EnemyActor extends GameObject {
     }
 
     private AnimationStrip resolveStrip() {
+        // Caesar Hunos casting animation
+        if (isCaesarHunos && castingSkill && castingStrip != null) {
+            return castingStrip;
+        }
+        
         if (boss && attackStrip != null && bossMeleeAnimHoldSec > 0) {
             return attackStrip;
         }
@@ -312,7 +447,7 @@ public class EnemyActor extends GameObject {
         }
         // Major bosses chase every frame; `moving` can flicker near the player line and swap idle vs walk
         // one frame apart (e.g. Caesar idle = 1 cell vs 6-frame walk) which reads as constant blinking.
-        if (boss && walkStrip != null) {
+        if (boss && walkStrip != null && !isCaesarHunos) {
             return walkStrip;
         }
         if (moving && walkStrip != null) {

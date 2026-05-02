@@ -63,21 +63,21 @@ public final class StageCatalog {
                         Color.color(0.68, 0.18, 0.18)
                 ),
                 new StageDefinition(
-                        "Stage 4 - Courtyard",
-                        "Confront the truth and defeat the LAIR Mimic.",
-                        "Sir Khai's torn jacket hangs from a tree. The thing wearing his face has stopped pretending.",
-                        "The final courtyard is open and quiet, which makes the lie wearing Sir Khai's face worse.",
+                        "Stage 4 - Final Confrontation",
+                        "Face Khai's true form and end the nightmare.",
+                        "The gym floor cracks as Khai's monstrous form emerges. Spikes rain from above and erupt from below.",
+                        "The air is thick with dread. Khai stands motionless, but his attacks are relentless.",
                         "",
                         0,
                         0,
                         0,
                         List.of(),
-                        "LAIR Mimic (False Sir Khai)",
-                        520,
-                        108,
-                        "enemy.khai_mimic_human",
-                        "stage.courtyard",
-                        Color.color(0.42, 0.70, 0.24)
+                        "Khai (Boss Form)",
+                        650,
+                        0,
+                        "enemy.khai_boss_form",
+                        "stage.covered_court",
+                        Color.color(0.28, 0.12, 0.32)
                 )
         );
     }
