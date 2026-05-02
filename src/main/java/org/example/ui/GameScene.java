@@ -44,6 +44,8 @@ public class GameScene {
     private static final double GROUND_Y = 620;
     private static final double GRAVITY = 1500;
     private static final double PIXEL = 4;
+    private static final double PAUSE_MENU_BUTTON_W = 288;
+    private static final double PAUSE_MENU_BUTTON_H = 42;
 
     private final Scene scene;
     private final Canvas canvas = new Canvas(W, H);
@@ -158,7 +160,7 @@ public class GameScene {
         if (paused) {
             if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
                 paused = false;
-            } else if (input.isJustPressed(KeyCode.M)) {
+            } else if (input.isMouseLeftJustClicked() && isPauseMenuButtonHit()) {
                 exitToMainMenu();
                 return;
             }
@@ -1236,6 +1238,15 @@ public class GameScene {
         GameContext.audio().stopBackgroundMusic();
         loop.stop();
         GameContext.showIntro();
+    }
+
+    private boolean isPauseMenuButtonHit() {
+        double buttonX = W / 2.0 - PAUSE_MENU_BUTTON_W / 2.0;
+        double buttonY = H / 2.0 + 10;
+        return input.getMouseX() >= buttonX
+                && input.getMouseX() <= buttonX + PAUSE_MENU_BUTTON_W
+                && input.getMouseY() >= buttonY
+                && input.getMouseY() <= buttonY + PAUSE_MENU_BUTTON_H;
     }
 
     public Scene getScene() {

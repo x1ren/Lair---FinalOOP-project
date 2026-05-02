@@ -261,9 +261,16 @@ final class GameHudRenderer {
         String resume = "ESC / ENTER / SPACE  RESUME";
         gc.fillText(resume, viewportWidth / 2.0 - textWidth(resume, 15) / 2.0, panelY + 128);
 
-        gc.setFill(Color.color(0.74, 0.82, 0.78));
-        String mainMenu = "M  BACK TO MAIN MENU";
-        gc.fillText(mainMenu, viewportWidth / 2.0 - textWidth(mainMenu, 15) / 2.0, panelY + 166);
+        double buttonW = 288;
+        double buttonH = 42;
+        double buttonX = viewportWidth / 2.0 - buttonW / 2.0;
+        double buttonY = viewportHeight / 2.0 + 10;
+        drawPixelPanel(buttonX, buttonY, buttonW, buttonH, Color.color(0.04, 0.12, 0.08, 0.98),
+                Color.color(0.18, 0.82, 0.34, 0.88));
+
+        gc.setFill(Color.color(0.86, 0.94, 0.88));
+        String mainMenu = "BACK TO MAIN MENU";
+        gc.fillText(mainMenu, viewportWidth / 2.0 - textWidth(mainMenu, 15) / 2.0, buttonY + 27);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
         gc.setFill(Color.color(0.50, 0.58, 0.54));

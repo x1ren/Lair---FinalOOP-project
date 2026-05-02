@@ -57,7 +57,7 @@ Contains the playable character data and fixed loadout stats:
 | `R` | Reload |
 | `Space` | Jump |
 | `Esc` | Pause or resume gameplay |
-| `M` | Back to main menu from pause menu |
+| Click **Back to Main Menu** | Return to the main intro/loading screen from pause menu |
 
 The in-game HUD shows:
 

@@ -27,7 +27,7 @@ If Maven dependencies are not downloaded yet, the first run may take a bit longe
 | Reload | `R` |
 | Jump | `Space` |
 | Pause menu | `Esc` |
-| Back to main menu | `M` from pause menu |
+| Back to main menu | Click **Back to Main Menu** from pause menu |
 
 The HUD shows the **skill name**, **`[Q]`** hint, cooldown (`READY` or seconds), a short **effect summary**, and an **Active effects & scaling** panel (stage damage multiplier plus any buffs in progress). See [system-overview.md](system-overview.md) for packages and architecture.
 
