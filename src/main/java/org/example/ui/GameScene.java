@@ -1568,6 +1568,8 @@ public class GameScene {
                 getAbilityMeterFill(), getAbilityStatusText(), getReloadStatusText(),
                 getActiveEffectLines(),
                 CombatScaling.playerDamageStageMultiplier(stageIndex),
+                playerDashTimer,
+                playerDashCooldownTimer,
                 arena.exitMarker().isActive(),
                 hudAnimTime);
 

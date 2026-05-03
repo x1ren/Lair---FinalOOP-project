@@ -32,6 +32,8 @@ final class GameHudRenderer {
                    String reloadStatus,
                    List<String> activeEffectLines,
                    double stageDamageMultiplier,
+                   double playerDashTimer,
+                   double playerDashCooldownTimer,
                    boolean exitOpen,
                    double hudAnimTime) {
         double panelY = 18;
@@ -91,11 +93,12 @@ final class GameHudRenderer {
         gc.fillText("RELOAD", viewportWidth - 204, panelY + 72);
         gc.fillText(reloadStatus, viewportWidth - 204, panelY + 92);
 
-        renderActiveEffectsPanel(activeEffectLines, stageDamageMultiplier);
+        renderActiveEffectsPanel(activeEffectLines, stageDamageMultiplier,
+                playerDashTimer, playerDashCooldownTimer);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
         gc.setFill(Color.color(0.55, 0.62, 0.58));
-        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  R reload  |  Space jump  |  Esc pause",
+        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  E dash  |  R reload  |  Space jump  |  Esc pause",
                 20, viewportHeight - 12);
 
         if (exitOpen) {
@@ -107,17 +110,21 @@ final class GameHudRenderer {
         }
     }
 
-    private void renderActiveEffectsPanel(List<String> activeEffectLines, double stageDamageMultiplier) {
+    private void renderActiveEffectsPanel(List<String> activeEffectLines, double stageDamageMultiplier,
+                                          double playerDashTimer, double playerDashCooldownTimer) {
         int effectCount = activeEffectLines == null ? 0 : activeEffectLines.size();
         double lineH = 13;
+        double dashLineH = 13;
         double headerH = 16;
         double stageLineH = 14;
         double hintLineH = effectCount == 0 ? 14 : 0;
         double padY = 10;
-        double panelH = padY * 2 + headerH + stageLineH + hintLineH + effectCount * lineH + (effectCount > 0 ? 4 : 0);
+        double panelH = padY * 2 + headerH + stageLineH + dashLineH + hintLineH + effectCount * lineH
+                + (effectCount > 0 ? 4 : 0);
         double panelY = viewportHeight - panelH - 22;
         double panelW = 340;
         double panelX = 20;
+        double innerRight = panelX + panelW - 14;
 
         drawPixelPanel(panelX, panelY, panelW, panelH, Color.color(0.01, 0.03, 0.05, 0.84),
                 Color.color(0.10, 0.76, 0.42, 0.72));
@@ -132,6 +139,25 @@ final class GameHudRenderer {
         gc.fillText(String.format("Stage damage multiplier: x%.2f", stageDamageMultiplier), panelX + 14, y);
         y += stageLineH;
 
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
+        gc.setFill(Color.color(0.35, 0.95, 0.55));
+        gc.fillText("DASH  [E]", panelX + 14, y);
+        String dashRight;
+        Color dashRightColor;
+        if (playerDashTimer > 0) {
+            dashRight = "ACTIVE";
+            dashRightColor = Color.color(0.75, 0.82, 0.78);
+        } else if (playerDashCooldownTimer > 0) {
+            dashRight = String.format("%.1fs", playerDashCooldownTimer);
+            dashRightColor = Color.WHITE;
+        } else {
+            dashRight = "READY";
+            dashRightColor = Color.color(0.35, 0.95, 0.55);
+        }
+        gc.setFill(dashRightColor);
+        gc.fillText(dashRight, innerRight - textWidth(dashRight, 9), y);
+        y += dashLineH;
+
         if (activeEffectLines != null) {
             gc.setFill(Color.color(0.2, 0.92, 0.45));
             for (String line : activeEffectLines) {
@@ -143,7 +169,7 @@ final class GameHudRenderer {
         if (effectCount == 0) {
             gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
             gc.setFill(Color.color(0.45, 0.5, 0.48));
-            gc.fillText("(No timed buff — press Q when skill is READY)", panelX + 14, y);
+            gc.fillText("(No timed buff — Q skill when READY; E dash when READY)", panelX + 14, y);
         }
     }
 
