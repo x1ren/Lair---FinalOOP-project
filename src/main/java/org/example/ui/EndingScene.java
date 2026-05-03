@@ -12,6 +12,7 @@ import javafx.scene.text.*;
 import javafx.util.Duration;
 import org.example.Main;
 import org.example.app.GameContext;
+import org.example.leaderboard.LeaderboardEntry;
 
 import java.net.URL;
 import java.util.List;
@@ -78,6 +79,8 @@ public class EndingScene {
     private Timeline pauseTimer;
     private MediaPlayer bgmPlayer;
 
+    private final LeaderboardEntry completedRun;
+
     // ── Visual effects ────────────────────────────────────────
     private double vignetteIntensity = 0.0;
     private double fadeAlpha = 1.0;
@@ -87,7 +90,8 @@ public class EndingScene {
     private double textShake = 0.0;
     private AnimationTimer effectsTimer;
 
-    public EndingScene() {
+    public EndingScene(LeaderboardEntry completedRun) {
+        this.completedRun = completedRun;
         Pane root = new Pane(canvas);
         scene = new Scene(root, W, H);
         scene.setCursor(javafx.scene.Cursor.DEFAULT);
@@ -270,8 +274,7 @@ public class EndingScene {
                 }),
                 new KeyFrame(Duration.seconds(6.5), e -> {
                     cleanup();
-                    // Return to main menu or exit
-                    System.exit(0);
+                    GameContext.showPostGameLeaderboard(completedRun);
                 })
         );
         sequence.setCycleCount(1);
