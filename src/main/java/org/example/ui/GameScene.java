@@ -31,8 +31,12 @@ import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterCombatProfile;
 import org.example.player.CharacterType;
 import org.example.app.GameContext;
+import org.example.leaderboard.LeaderboardEntry;
+import org.example.leaderboard.LeaderboardManager;
+import org.example.leaderboard.RunTimer;
 import org.example.weapons.Weapon;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -53,6 +57,10 @@ public class GameScene {
     private final InputHandler input = new InputHandler();
     private final Random random = new Random();
     private final AssetRegistry assets = GameContext.assets();
+
+    private final String playerName;
+    private final RunTimer runTimer = new RunTimer();
+    private LeaderboardEntry completedRun;
 
     private final CharacterType character;
     private final CharacterCombatProfile combatProfile;
@@ -123,8 +131,9 @@ public class GameScene {
     private double screenShakeTimer;
     private double screenShakeIntensity;
 
-    public GameScene(CharacterType character) {
+    public GameScene(CharacterType character, String playerName) {
         this.character = character;
+        this.playerName = playerName;
         this.combatProfile = character.getCombatProfile();
         this.weapon = character.createWeapon();
         this.player = new PlayerActor(120, GROUND_Y - 58, 42, 58);
@@ -194,6 +203,15 @@ public class GameScene {
             focusShots = 0;
         }
 
+        if (!finished && !paused) {
+            if (stageIndex == 0 && stageIntroTimer <= 0) {
+                runTimer.start();
+            }
+            if (runTimer.isStarted() && !runTimer.isStopped()) {
+                runTimer.accumulate(dt);
+            }
+        }
+
         hudAnimTime += dt;
 
         if (finished) {
@@ -212,7 +230,7 @@ public class GameScene {
                     // Transition to ending scene
                     GameContext.audio().stopBackgroundMusic();
                     loop.stop();
-                    GameContext.showEnding();
+                    GameContext.showEnding(completedRun);
                     return;
                 }
             } else {
@@ -1412,6 +1430,9 @@ public class GameScene {
         if (stageIndex == stages.size() - 1) {
             finished = true;
             victory = true;
+            runTimer.stop();
+            completedRun = new LeaderboardEntry(playerName, runTimer.getElapsedMillis(), Instant.now());
+            LeaderboardManager.get().submitEntryAsync(completedRun, null);
             setStatus(getStageClearMessage(stage));
             return;
         }

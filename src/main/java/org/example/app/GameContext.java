@@ -7,10 +7,12 @@ import org.example.assets.AssetPreloader;
 import org.example.assets.AssetRegistry;
 import org.example.audio.AudioManager;
 import org.example.player.CharacterType;
+import org.example.leaderboard.LeaderboardEntry;
 import org.example.ui.CharacterSelectScene;
 import org.example.ui.EndingScene;
 import org.example.ui.GameScene;
 import org.example.ui.IntroScene;
+import org.example.ui.PostGameLeaderboardScene;
 
 public final class GameContext {
 
@@ -41,12 +43,16 @@ public final class GameContext {
         switchScene(new CharacterSelectScene().getScene());
     }
 
-    public static void showGame(CharacterType character) {
-        switchScene(new GameScene(character).getScene());
+    public static void showGame(CharacterType character, String playerName) {
+        switchScene(new GameScene(character, playerName).getScene());
     }
 
-    public static void showEnding() {
-        switchScene(new EndingScene().getScene());
+    public static void showEnding(LeaderboardEntry completedRun) {
+        switchScene(new EndingScene(completedRun).getScene());
+    }
+
+    public static void showPostGameLeaderboard(LeaderboardEntry highlightRun) {
+        switchScene(new PostGameLeaderboardScene(highlightRun).getScene());
     }
 
     public static void switchScene(Scene scene) {
