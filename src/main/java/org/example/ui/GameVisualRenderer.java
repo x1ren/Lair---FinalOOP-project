@@ -50,13 +50,12 @@ final class GameVisualRenderer {
     }
 
     void renderPlayerWeapon(PlayerActor player, Weapon weapon, boolean finished, boolean victory,
-                            double aimAngle, double muzzleFlashTimer, double muzzleFlashDuration) {
+                            double aimAngle, boolean shoulderOnRight, double muzzleFlashTimer, double muzzleFlashDuration) {
         if (finished && !victory) {
             return;
         }
 
-        boolean aimingRight = Math.cos(aimAngle) >= 0;
-        double shoulderX = player.getCenterX() + (aimingRight ? 10 : -10);
+        double shoulderX = player.getCenterX() + (shoulderOnRight ? 10 : -10);
         double shoulderY = player.getY() + player.getHeight() * 0.38;
 
         gc.save();

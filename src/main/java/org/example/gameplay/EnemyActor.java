@@ -155,6 +155,11 @@ public class EnemyActor extends GameObject {
         }
         this.attacking = attacking;
     }
+
+    /** Holds {@link #attackStrip} visible for bosses (e.g. Khai boss skill windup) independent of melee flicker. */
+    public void setBossAttackVisualHold(double seconds) {
+        bossMeleeAnimHoldSec = Math.max(bossMeleeAnimHoldSec, seconds);
+    }
     
     public void markAsCaesarHunos() {
         this.isCaesarHunos = true;
@@ -453,7 +458,18 @@ public class EnemyActor extends GameObject {
             AnimationStrip strip = resolveStrip();
             int row = strip == null ? 0 : strip.row();
             int column = strip == null ? 0 : strip.frameAt(animationTime);
-            spriteSheet.drawFrame(gc, row, column, x - paddingX, y - paddingY, getWidth() + paddingX * 2, getHeight() + paddingY * 2, facing > 0);
+            double drawW = getWidth() + paddingX * 2;
+            double drawH = getHeight() + paddingY * 2;
+            double dx = x - paddingX;
+            double dy = y - paddingY;
+            boolean flip = facing > 0;
+            // CaesarHunos_Idle cells are 120×120 but opaque art only reaches ~y=107 — omit dead band so the boss fills the silhouette.
+            if (isCaesarHunos && spriteSheet.frameWidth() == 120 && spriteSheet.frameHeight() == 120) {
+                spriteSheet.drawFramePartial(gc, row, column, dx, dy, drawW, drawH, flip,
+                        0, 0, 120, 107);
+            } else {
+                spriteSheet.drawFrame(gc, row, column, dx, dy, drawW, drawH, flip);
+            }
         } else {
             gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
             gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);
