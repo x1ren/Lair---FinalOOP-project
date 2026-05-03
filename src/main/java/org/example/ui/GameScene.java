@@ -1266,9 +1266,9 @@ public class GameScene {
         int batchEnd = Math.min(mobsSpawned + BATCH_SIZE, totalMobsToSpawn);
         
         for (int i = batchStart; i < batchEnd; i++) {
-            double x = arena.mobSpawnX(i, totalMobsToSpawn);
-            // Spawn enemies high above so they fall and land on platforms
-            EnemyActor enemy = new EnemyActor(stage.enemyName(), x, 50, 42, 54,
+            double x = arena.randomMobSpawnX(random, 42);
+            double spawnY = 40 + random.nextDouble() * 75;
+            EnemyActor enemy = new EnemyActor(stage.enemyName(), x, spawnY, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
             if (!stage.enemySpriteIds().isEmpty()) {
                 applyEnemySprite(enemy, stage.enemySpriteIds().get(i % stage.enemySpriteIds().size()));
@@ -1595,7 +1595,7 @@ public class GameScene {
     private void exitToMainMenu() {
         GameContext.audio().stopBackgroundMusic();
         loop.stop();
-        GameContext.showIntro();
+        GameContext.showMainMenu();
     }
 
     private boolean isPauseMenuButtonHit() {

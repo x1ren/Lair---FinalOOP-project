@@ -12,6 +12,7 @@ import org.example.ui.CharacterSelectScene;
 import org.example.ui.EndingScene;
 import org.example.ui.GameScene;
 import org.example.ui.IntroScene;
+import org.example.ui.MainMenuScene;
 import org.example.ui.PostGameLeaderboardScene;
 
 public final class GameContext {
@@ -20,6 +21,9 @@ public final class GameContext {
     private static AssetRegistry assets;
     private static AudioManager audio;
     private static AssetPreloader preloader;
+
+    /** Display name for the current run; set on main menu, cleared when returning to main menu. */
+    private static String sessionPlayerName;
 
     private GameContext() {
     }
@@ -35,16 +39,32 @@ public final class GameContext {
         preloader.start();
     }
 
-    public static void showIntro() {
+    /** Opening title card (same as before); advances to main menu. */
+    public static void showTitleScreen() {
         switchScene(new IntroScene().getScene());
+    }
+
+    public static void showMainMenu() {
+        sessionPlayerName = null;
+        switchScene(new MainMenuScene().getScene());
+    }
+
+    /** Full dialogue intro after main menu; ends at character select. */
+    public static void showIntro() {
+        switchScene(IntroScene.createStoryIntro().getScene());
     }
 
     public static void showCharacterSelect() {
         switchScene(new CharacterSelectScene().getScene());
     }
 
-    public static void showGame(CharacterType character, String playerName) {
-        switchScene(new GameScene(character, playerName).getScene());
+    public static void showGame(CharacterType character) {
+        String name = sessionPlayerName;
+        if (name == null || name.isBlank()) {
+            showMainMenu();
+            return;
+        }
+        switchScene(new GameScene(character, name).getScene());
     }
 
     public static void showEnding(LeaderboardEntry completedRun) {
@@ -58,6 +78,10 @@ public final class GameContext {
     public static void switchScene(Scene scene) {
         stage.setScene(scene);
         stage.show();
+    }
+
+    public static void setSessionPlayerName(String name) {
+        sessionPlayerName = name;
     }
 
     public static AssetRegistry assets() {

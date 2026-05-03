@@ -46,7 +46,7 @@ public class PostGameLeaderboardScene {
 
         scene.setOnMouseClicked(e -> {
             if (isInside(e.getX(), e.getY(), BTN_X, BTN_Y, BTN_W, BTN_H)) {
-                GameContext.showCharacterSelect();
+                GameContext.showMainMenu();
             }
         });
 
@@ -120,8 +120,8 @@ public class PostGameLeaderboardScene {
                 }
                 gc.setFill(hi ? Color.color(0.2, 0.95, 0.55) : Color.color(0.82, 0.88, 0.90));
                 gc.fillText(String.valueOf(rank), colRank, rowY);
-                gc.fillText(formatDuration(e.elapsedMillis()), colTime, rowY);
-                gc.fillText(truncate(e.username(), 22), colName, rowY);
+                gc.fillText(LeaderboardFormat.formatDuration(e.elapsedMillis()), colTime, rowY);
+                gc.fillText(LeaderboardFormat.truncate(e.username(), 22), colName, rowY);
                 gc.fillText(e.completedAt().toString().replace("T", " ").replace("Z", " Z"), colWhen, rowY);
                 rowY += 22;
                 rank++;
@@ -135,20 +135,8 @@ public class PostGameLeaderboardScene {
                 Color.color(0.15, 0.88, 0.42));
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
         gc.setFill(Color.color(0.15, 0.9, 0.42));
-        String btn = "CONTINUE TO MENU";
+        String btn = "MAIN MENU";
         gc.fillText(btn, BTN_X + BTN_W / 2 - computeW(btn, 18) / 2, BTN_Y + 34);
-    }
-
-    private static String formatDuration(long millis) {
-        long t = millis / 1000;
-        long m = t / 60;
-        long s = t % 60;
-        long ms = millis % 1000;
-        return String.format("%d:%02d.%03d", m, s, ms);
-    }
-
-    private static String truncate(String s, int max) {
-        return s.length() <= max ? s : s.substring(0, max - 1) + "…";
     }
 
     private void drawPixelPanel(double x, double y, double width, double height, Color bg, Color border) {

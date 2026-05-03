@@ -8,6 +8,7 @@ import org.example.gameplay.StageExitMarker;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 final class StageArena {
 
@@ -74,11 +75,20 @@ final class StageArena {
         player.clampX(0, worldWidth - player.getWidth());
     }
 
-    double mobSpawnX(int index, int total) {
-        double laneStart = Math.max(520, worldWidth * 0.40);
-        double laneWidth = Math.max(280, worldWidth * 0.45);
-        double spacing = laneWidth / Math.max(1, total - 1);
-        return laneStart + index * spacing;
+    /**
+     * Uniform random X for ground-bound minions: avoids spawn camping at one lane and keeps margins
+     * clear of the stage edges and exit marker side.
+     */
+    double randomMobSpawnX(Random random, double enemyWidth) {
+        double marginLeft = 100;
+        double marginRight = 140;
+        double minX = marginLeft;
+        double maxX = worldWidth - enemyWidth - marginRight;
+        if (maxX <= minX) {
+            double cx = (worldWidth - enemyWidth) / 2;
+            return clamp(cx, 0, Math.max(0, worldWidth - enemyWidth));
+        }
+        return minX + random.nextDouble() * (maxX - minX);
     }
 
     double bossSpawnX(boolean finalStage) {

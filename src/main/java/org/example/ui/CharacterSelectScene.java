@@ -4,7 +4,6 @@ import javafx.animation.AnimationTimer;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -12,12 +11,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import org.example.Main;
 import org.example.assets.SpriteSheet;
-import org.example.leaderboard.LeaderboardEntry;
-import org.example.leaderboard.LeaderboardManager;
 import org.example.player.CharacterType;
 import org.example.app.GameContext;
-
-import java.util.List;
 
 public class CharacterSelectScene {
 
@@ -29,12 +24,8 @@ public class CharacterSelectScene {
     private static final double CARD_W = 180;
     private static final double CARD_H = 296;
     private static final double CARD_GAP = 16;
-    private static final double CARD_ROW_W =
-            CARD_COUNT * CARD_W + (CARD_COUNT - 1) * CARD_GAP;
-    /** Reserve left column for leaderboard + username (cards stay centered in remaining width). */
-    private static final double LEFT_COLUMN_W = 248;
     private static final double CARDS_START_X =
-            LEFT_COLUMN_W + (W - LEFT_COLUMN_W - 32 - CARD_ROW_W) / 2.0;
+            (W - (CARD_COUNT * CARD_W + (CARD_COUNT - 1) * CARD_GAP)) / 2.0;
     private static final double CARDS_Y = 164;
 
     private static final double BTN_W = 300;
@@ -42,38 +33,18 @@ public class CharacterSelectScene {
     private static final double BTN_X = W / 2.0 - BTN_W / 2;
     private static final double BTN_Y = 642;
 
-    private static final int LEADERBOARD_TOP_N = 10;
-    private static final double LB_X = 16;
-    private static final double LB_Y = 176;
-    private static final double LB_W = 220;
-    private static final double LB_H = 440;
-
     private final Scene scene;
     private final Canvas canvas = new Canvas(W, H);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
-    private final TextField usernameField;
     private final AnimationTimer loop;
 
     private CharacterType selected = CharacterType.JOSEPH_JIMENEZ;
     private int hoveredIndex = -1;
     private double elapsed;
     private double bgPulse;
-    private String usernameError = "";
-    private List<LeaderboardEntry> leaderboardRows = List.of();
 
     public CharacterSelectScene() {
-        usernameField = new TextField();
-        usernameField.setPromptText("Enter your name");
-        usernameField.setLayoutX(16);
-        usernameField.setLayoutY(92);
-        usernameField.setPrefWidth(228);
-        usernameField.setPrefHeight(30);
-        usernameField.setStyle(
-                "-fx-background-color: #050a0a; -fx-control-inner-background: #0a1214;"
-                        + " -fx-text-fill: #dceee8; -fx-font-family: Monospace; -fx-font-size: 12px;"
-                        + " -fx-border-color: #1a6640; -fx-border-width: 2px;");
-
-        Pane root = new Pane(canvas, usernameField);
+        Pane root = new Pane(canvas);
         scene = new Scene(root, W, H);
         scene.setCursor(javafx.scene.Cursor.DEFAULT);
 
@@ -87,10 +58,6 @@ public class CharacterSelectScene {
                 proceedToGame();
             }
         });
-
-        LeaderboardManager.get().loadAllAsync(
-                list -> leaderboardRows = LeaderboardManager.get().topN(list, LEADERBOARD_TOP_N),
-                () -> leaderboardRows = List.of());
 
         loop = new AnimationTimer() {
             private long lastTime;
@@ -118,8 +85,6 @@ public class CharacterSelectScene {
         renderGrid();
         renderVeins();
         renderHeader();
-        renderUsernameHint();
-        renderLeaderboardPanel();
 
         CharacterType[] chars = CharacterType.values();
         for (int i = 0; i < chars.length; i++) {
@@ -146,10 +111,6 @@ public class CharacterSelectScene {
         gc.setFill(Color.color(0.55, 0.72, 0.66));
         String hint = "Choose the survivor and enter with their fixed weapon loadout.";
         gc.fillText(hint.toUpperCase(), W / 2.0 - computeW(hint, 12) / 2, 124);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-        gc.setFill(Color.color(0.45, 0.72, 0.58));
-        gc.fillText("NAME (required before play)", 16, 84);
 
         String preload = GameContext.assets().isPreloadComplete() ? "ASSET SYNC COMPLETE" : "SYNCING SPRITES + AUDIO";
         gc.setFill(GameContext.assets().isPreloadComplete()
@@ -242,67 +203,6 @@ public class CharacterSelectScene {
 
         gc.setFill(active ? Color.color(0.15, 0.85, 0.4, 0.9) : Color.color(0.3, 0.5, 0.35, 0.6));
         gc.fillRect(snap(barX), snap(y), barW * fill, 10);
-    }
-
-    private void renderUsernameHint() {
-        if (usernameError == null || usernameError.isEmpty()) {
-            return;
-        }
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 11));
-        gc.setFill(Color.color(0.95, 0.35, 0.28));
-        gc.fillText(usernameError, 16, 134);
-    }
-
-    private void renderLeaderboardPanel() {
-        drawPixelPanel(LB_X, LB_Y, LB_W, LB_H, Color.color(0.02, 0.06, 0.06, 0.96),
-                Color.color(0.12, 0.55, 0.38));
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 13));
-        gc.setFill(Color.color(0.15, 0.88, 0.42));
-        String title = "FASTEST RUNS (TOP " + LEADERBOARD_TOP_N + ")";
-        gc.fillText(title, LB_X + LB_W / 2 - computeW(title, 13) / 2, LB_Y + 28);
-
-        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 10));
-        gc.setFill(Color.color(0.42, 0.55, 0.50));
-        gc.fillText("#", LB_X + 18, LB_Y + 56);
-        gc.fillText("TIME", LB_X + 44, LB_Y + 56);
-        gc.fillText("PLAYER", LB_X + 118, LB_Y + 56);
-
-        double rowY = LB_Y + 76;
-        if (leaderboardRows.isEmpty()) {
-            gc.setFill(Color.color(0.45, 0.50, 0.52));
-            gc.fillText("No runs yet.", LB_X + 18, rowY);
-            return;
-        }
-
-        int rank = 1;
-        for (LeaderboardEntry e : leaderboardRows) {
-            gc.setFill(Color.color(0.78, 0.84, 0.86));
-            gc.fillText(String.valueOf(rank), LB_X + 18, rowY);
-            gc.fillText(formatDuration(e.elapsedMillis()), LB_X + 44, rowY);
-            String name = truncate(e.username(), 14);
-            gc.fillText(name, LB_X + 118, rowY);
-            rowY += 18;
-            rank++;
-            if (rowY > LB_Y + LB_H - 20) {
-                break;
-            }
-        }
-    }
-
-    private static String formatDuration(long millis) {
-        long t = millis / 1000;
-        long m = t / 60;
-        long s = t % 60;
-        long ms = millis % 1000;
-        return String.format("%d:%02d.%03d", m, s, ms);
-    }
-
-    private static String truncate(String s, int maxChars) {
-        if (s.length() <= maxChars) {
-            return s;
-        }
-        return s.substring(0, maxChars - 1) + "…";
     }
 
     private void renderLorePanel() {
@@ -399,18 +299,8 @@ public class CharacterSelectScene {
     }
 
     private void proceedToGame() {
-        String raw = usernameField.getText() == null ? "" : usernameField.getText().trim();
-        if (raw.isEmpty()) {
-            usernameError = "Enter a name to start.";
-            return;
-        }
-        if (raw.contains(",")) {
-            usernameError = "Name cannot contain commas.";
-            return;
-        }
-        usernameError = "";
         loop.stop();
-        GameContext.showGame(selected, raw);
+        GameContext.showGame(selected);
     }
 
     private double computeW(String text, double size) {
