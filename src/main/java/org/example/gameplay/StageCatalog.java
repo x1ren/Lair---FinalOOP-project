@@ -17,12 +17,12 @@ public final class StageCatalog {
                         "Broken shelves, scattered books, and dark growth choke the library as infected librarians stalk the aisles.",
                         "Silent stacks, flickering lights, and infected footsteps close in from the shelves.",
                         "Infected Librarian",
-                        5,
-                        72,
+                        40,
+                        720, // 10x buff: 72 → 720
                         78,
                         List.of("enemy.librarian"),
                         "Security Guard",
-                        260,
+                        3900, // 15x buff: 260 → 3900
                         135, // Increased from 90 to 135 for faster mobility
                         "enemy.security_guard",
                         "stage.library",
@@ -34,12 +34,12 @@ public final class StageCatalog {
                         "Overturned tables and corrupted kitchen waste turn the canteen into a chaotic kill zone.",
                         "The food court is still lit, but everything moving inside it wants you dead.",
                         "Infected Student",
-                        6,
-                        82,
+                        40,
+                        820, // 10x buff: 82 → 820
                         88,
                         List.of("enemy.student_f", "enemy.student_m"),
                         "Mutated Vendor",
-                        320,
+                        6400, // 20x buff: 320 → 6400
                         96,
                         "enemy.vendor",
                         "stage.canteen",
@@ -51,12 +51,12 @@ public final class StageCatalog {
                         "The gym is thick with LAIR gas. Infected janitors roam the floor while Caesar waits at the center.",
                         "Bleachers loom overhead while the infected gas turns the court into a trap.",
                         "Infected Janitor",
-                        6,
-                        90,
+                        40,
+                        900, // 10x buff: 90 → 900
                         92,
                         List.of("enemy.janitor"),
                         "Caesar Hunos",
-                        450,
+                        11250, // 25x buff: 450 → 11250
                         102,
                         "enemy.caesar_hunos",
                         "stage.gym",
@@ -73,7 +73,7 @@ public final class StageCatalog {
                         0,
                         List.of(),
                         "Khai (Boss Form)",
-                        650,
+                        16250, // 25x buff: 650 → 16250
                         0,
                         "enemy.khai_boss_form",
                         "stage.covered_court",

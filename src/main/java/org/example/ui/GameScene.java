@@ -93,6 +93,12 @@ public class GameScene {
     private boolean stageBossSpawned;
     private double footstepTimer;
     private boolean deathSoundPlayed;
+    
+    // Batch spawning fields
+    private static final int BATCH_SIZE = 10;
+    private int totalMobsToSpawn;
+    private int mobsSpawned;
+    private boolean batchSpawningActive;
 
     /** Seconds, used for HUD skill strip animation. */
     private double hudAnimTime;
@@ -1209,6 +1215,11 @@ public class GameScene {
         khaiMimicMorphTriggered = false;
         arena.exitMarker().setActive(false);
         arena.exitMarker().setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
+        
+        // Reset batch spawning state
+        batchSpawningActive = false;
+        totalMobsToSpawn = 0;
+        mobsSpawned = 0;
 
         StageDefinition stage = stages.get(stageIndex);
         arena.prepareStage(stage, stageIndex, player, loadBackdrop(stage));
@@ -1223,8 +1234,21 @@ public class GameScene {
     }
 
     private void spawnMobWave(StageDefinition stage) {
-        for (int i = 0; i < stage.enemyCount(); i++) {
-            double x = arena.mobSpawnX(i, stage.enemyCount());
+        // Initialize batch spawning
+        totalMobsToSpawn = stage.enemyCount();
+        mobsSpawned = 0;
+        batchSpawningActive = true;
+        
+        // Spawn first batch
+        spawnNextBatch(stage);
+    }
+    
+    private void spawnNextBatch(StageDefinition stage) {
+        int batchStart = mobsSpawned;
+        int batchEnd = Math.min(mobsSpawned + BATCH_SIZE, totalMobsToSpawn);
+        
+        for (int i = batchStart; i < batchEnd; i++) {
+            double x = arena.mobSpawnX(i, totalMobsToSpawn);
             // Spawn enemies high above so they fall and land on platforms
             EnemyActor enemy = new EnemyActor(stage.enemyName(), x, 50, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
@@ -1233,6 +1257,14 @@ public class GameScene {
             }
             enemies.add(enemy);
         }
+        
+        mobsSpawned = batchEnd;
+        
+        if (mobsSpawned >= totalMobsToSpawn) {
+            batchSpawningActive = false;
+        }
+        
+        setStatus("Wave " + ((mobsSpawned / BATCH_SIZE)) + " / " + ((totalMobsToSpawn + BATCH_SIZE - 1) / BATCH_SIZE) + " spawned!");
     }
 
     private void spawnBoss(StageDefinition stage) {
@@ -1364,6 +1396,12 @@ public class GameScene {
     }
 
     private void handleStageCleared(StageDefinition stage) {
+        // Check if we need to spawn the next batch of mobs
+        if (batchSpawningActive && mobsSpawned < totalMobsToSpawn) {
+            spawnNextBatch(stage);
+            return;
+        }
+        
         if (stage.hasBoss() && !stageBossSpawned) {
             spawnBoss(stage);
             stageIntroTimer = 2.8;
