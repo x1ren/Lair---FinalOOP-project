@@ -58,6 +58,17 @@ public final class GameContext {
         switchScene(new CharacterSelectScene().getScene());
     }
 
+    /**
+     * Skip menus and jump into the story at a given stage (see {@link LaunchConfig}). Sets session name to
+     * {@link LaunchConfig#DEBUG_PLAYER_NAME}.
+     */
+    public static void enterGameFromDebugShortcut(int stageCount) {
+        sessionPlayerName = LaunchConfig.debugPlayerName();
+        CharacterType character = LaunchConfig.debugCharacter();
+        int idx = LaunchConfig.debugStageIndex0Based(stageCount);
+        switchScene(new GameScene(character, sessionPlayerName, idx).getScene());
+    }
+
     public static void showGame(CharacterType character) {
         String name = sessionPlayerName;
         if (name == null || name.isBlank()) {

@@ -133,6 +133,10 @@ public class GameScene {
     private double screenShakeIntensity;
 
     public GameScene(CharacterType character, String playerName) {
+        this(character, playerName, 0);
+    }
+
+    public GameScene(CharacterType character, String playerName, int initialStageIndex0Based) {
         this.character = character;
         this.playerName = playerName;
         this.combatProfile = character.getCombatProfile();
@@ -148,7 +152,9 @@ public class GameScene {
         this.scene = new Scene(root, W, H);
         input.attachTo(scene);
 
-        startStage(0);
+        int maxStage = stages.size() - 1;
+        int idx = Math.max(0, Math.min(initialStageIndex0Based, maxStage));
+        startStage(idx);
 
         this.loop = new GameLoop() {
             @Override
@@ -205,7 +211,7 @@ public class GameScene {
         }
 
         if (!finished && !paused) {
-            if (stageIndex == 0 && stageIntroTimer <= 0) {
+            if (!runTimer.isStarted() && stageIntroTimer <= 0) {
                 runTimer.start();
             }
             if (runTimer.isStarted() && !runTimer.isStopped()) {
