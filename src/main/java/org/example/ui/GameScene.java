@@ -51,6 +51,8 @@ public class GameScene {
     /** Shared dash for all characters: flat horizontal speed, does not mutate CharacterType stats. */
     private static final double PLAYER_DASH_SPEED_PX = 1000.0;
     private static final double PLAYER_DASH_DURATION_SEC = 0.1;
+    /** Cooldown after a dash finishes before the next dash can start. */
+    private static final double PLAYER_DASH_COOLDOWN_SEC = 5.0;
     private static final double PIXEL = 4;
     private static final double PAUSE_MENU_BUTTON_W = 288;
     private static final double PAUSE_MENU_BUTTON_H = 42;
@@ -102,6 +104,8 @@ public class GameScene {
     private double invulnerableTimer;
     /** Remaining dash time; while > 0 horizontal move uses {@link #PLAYER_DASH_SPEED_PX}. Ignores repeat E to avoid stacking. */
     private double playerDashTimer;
+    /** Time until another dash can begin after the current dash ends. */
+    private double playerDashCooldownTimer;
     private int focusShots;
     private int overloadShots;
     private boolean stageBossSpawned;
@@ -209,7 +213,12 @@ public class GameScene {
         overdriveTimer = Math.max(0, overdriveTimer - dt);
         focusTimer = Math.max(0, focusTimer - dt);
         invulnerableTimer = Math.max(0, invulnerableTimer - dt);
+        playerDashCooldownTimer = Math.max(0, playerDashCooldownTimer - dt);
+        double dashBeforeTick = playerDashTimer;
         playerDashTimer = Math.max(0, playerDashTimer - dt);
+        if (dashBeforeTick > 0 && playerDashTimer == 0) {
+            playerDashCooldownTimer = PLAYER_DASH_COOLDOWN_SEC;
+        }
         muzzleFlashTimer = Math.max(0, muzzleFlashTimer - dt);
 
         if (focusTimer == 0) {
@@ -298,7 +307,7 @@ public class GameScene {
     }
 
     private void handlePlayerInput() {
-        if (input.isJustPressed(KeyCode.E) && playerDashTimer <= 0) {
+        if (input.isJustPressed(KeyCode.E) && playerDashTimer <= 0 && playerDashCooldownTimer <= 0) {
             playerDashTimer = PLAYER_DASH_DURATION_SEC;
         }
 
@@ -1277,6 +1286,7 @@ public class GameScene {
         splittingSpikes.clear();
         stageIntroTimer = 4.5;
         playerDashTimer = 0;
+        playerDashCooldownTimer = 0;
         stageBossSpawned = false;
         khaiMimicMorphTriggered = false;
         arena.exitMarker().setActive(false);
