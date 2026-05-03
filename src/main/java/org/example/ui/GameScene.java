@@ -31,8 +31,13 @@ import org.example.gameplay.StageDefinition;
 import org.example.player.CharacterCombatProfile;
 import org.example.player.CharacterType;
 import org.example.app.GameContext;
+import org.example.leaderboard.LeaderboardEntry;
+import org.example.leaderboard.LeaderboardManager;
+import org.example.leaderboard.RunTimer;
 import org.example.weapons.Weapon;
+import org.example.weapons.WeaponType;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -53,6 +58,10 @@ public class GameScene {
     private final InputHandler input = new InputHandler();
     private final Random random = new Random();
     private final AssetRegistry assets = GameContext.assets();
+
+    private final String playerName;
+    private final RunTimer runTimer = new RunTimer();
+    private LeaderboardEntry completedRun;
 
     private final CharacterType character;
     private final CharacterCombatProfile combatProfile;
@@ -123,8 +132,13 @@ public class GameScene {
     private double screenShakeTimer;
     private double screenShakeIntensity;
 
-    public GameScene(CharacterType character) {
+    public GameScene(CharacterType character, String playerName) {
+        this(character, playerName, 0);
+    }
+
+    public GameScene(CharacterType character, String playerName, int initialStageIndex0Based) {
         this.character = character;
+        this.playerName = playerName;
         this.combatProfile = character.getCombatProfile();
         this.weapon = character.createWeapon();
         this.player = new PlayerActor(120, GROUND_Y - 58, 42, 58);
@@ -138,7 +152,9 @@ public class GameScene {
         this.scene = new Scene(root, W, H);
         input.attachTo(scene);
 
-        startStage(0);
+        int maxStage = stages.size() - 1;
+        int idx = Math.max(0, Math.min(initialStageIndex0Based, maxStage));
+        startStage(idx);
 
         this.loop = new GameLoop() {
             @Override
@@ -194,6 +210,15 @@ public class GameScene {
             focusShots = 0;
         }
 
+        if (!finished && !paused) {
+            if (!runTimer.isStarted() && stageIntroTimer <= 0) {
+                runTimer.start();
+            }
+            if (runTimer.isStarted() && !runTimer.isStopped()) {
+                runTimer.accumulate(dt);
+            }
+        }
+
         hudAnimTime += dt;
 
         if (finished) {
@@ -212,7 +237,7 @@ public class GameScene {
                     // Transition to ending scene
                     GameContext.audio().stopBackgroundMusic();
                     loop.stop();
-                    GameContext.showEnding();
+                    GameContext.showEnding(completedRun);
                     return;
                 }
             } else {
@@ -309,12 +334,7 @@ public class GameScene {
         player.step(dt);
         player.setOnGround(false);
 
-        // First check ground collision
-        if (player.getY() + player.getHeight() >= GROUND_Y) {
-            player.landOn(GROUND_Y);
-        }
-
-        // Then check platform collisions
+        // Resolve stage platforms before the global hard floor so tall/fast drops cannot tunnel through thin floors.
         if (!player.isOnGround()) {
             for (PlatformTile platform : arena.platforms()) {
                 if (player.getVy() >= 0 && CollisionManager.landsOnTop(player, platform, previousBottom)) {
@@ -324,19 +344,20 @@ public class GameScene {
             }
         }
 
-        // Additional check: if player is very close to a platform surface, snap them to it
-        // This handles the case where player walks along a platform
         if (!player.isOnGround() && player.getVy() >= 0) {
             for (PlatformTile platform : arena.platforms()) {
                 double currentBottom = player.getY() + player.getHeight();
                 boolean horizontalOverlap = player.getX() + player.getWidth() > platform.getX()
                         && player.getX() < platform.getX() + platform.getWidth();
-                // If player is within a small range of the platform top, snap them to it
                 if (horizontalOverlap && currentBottom >= platform.getY() && currentBottom <= platform.getY() + 10) {
                     player.landOn(platform.getY());
                     break;
                 }
             }
+        }
+
+        if (!player.isOnGround() && player.getY() + player.getHeight() >= GROUND_Y) {
+            player.landOn(GROUND_Y);
         }
 
         if (!wasOnGround && player.isOnGround()) {
@@ -436,7 +457,8 @@ public class GameScene {
     }
 
     private static final String KHAI_MIMIC_BOSS_NAME = "LAIR Mimic (False Sir Khai)";
-    private static final int KHAI_MIMIC_STAGE_INDEX = 3; // Stage 4 (0-indexed)
+    /** Only triggers when a stage uses {@code LAIR Mimic (False Sir Khai)} at this index (story catalog may omit it). */
+    private static final int KHAI_MIMIC_STAGE_INDEX = 3; // 0-based stage index
 
     private void maybeMorphKhaiMimicBoss() {
         if (khaiMimicMorphTriggered || finished || stageIndex != KHAI_MIMIC_STAGE_INDEX) {
@@ -554,10 +576,32 @@ public class GameScene {
         
         setStatus("Mutated Vendor summons a horde of students!");
     }
+
+    /** Caesar inches sideways for readability while casting. */
+    private void repositionStationaryMajorBoss(EnemyActor boss, double dt) {
+        double cx = player.getCenterX() - boss.getCenterX();
+
+        double minX = 20;
+        double maxX = arena.worldWidth() - boss.getWidth() - 20;
+        if (cx < -12) {
+            boss.setFacing(-1);
+        } else if (cx > 12) {
+            boss.setFacing(1);
+        }
+        double speedCap = 44;
+        double deadzone = 72;
+        double dx = 0;
+        if (Math.abs(cx) > deadzone) {
+            dx = Math.signum(cx) * Math.min(Math.abs(cx) * 0.16, speedCap) * dt;
+        }
+        boss.moveBy(dx, 0);
+        boss.setX(Math.max(minX, Math.min(maxX, boss.getX())));
+        boss.setMoving(Math.abs(dx) > 0.0001);
+    }
     
     private void updateCaesarHunosBehavior(EnemyActor caesar, double dt) {
-        // Caesar stays in place, only uses physics for gravity
         updateEnemyPhysics(caesar, dt);
+        repositionStationaryMajorBoss(caesar, dt);
         
         // Update casting state
         caesar.updateCasting(dt);
@@ -837,11 +881,23 @@ public class GameScene {
         }
     }
     
+    private static final double KHAI_BOSS_SKILL_WINDUP_SEC = 0.65;
+
+    private static AnimationStrip khaiBossIdleLoopStrip() {
+        return new AnimationStrip(0, 0, 1, 1);
+    }
+
     private void updateKhaiBossBehavior(EnemyActor khai, double dt) {
-        // Khai stays stationary, only uses physics for gravity
         updateEnemyPhysics(khai, dt);
-        
-        // Update animation timer
+        khai.chase(player, dt, 20, arena.worldWidth() - khai.getWidth() - 20,
+                combatProfile.enemySlowMoveFactor());
+
+        if (khai.getAttackCooldown() <= 0 && CollisionManager.intersects(khai, player)) {
+            applyDamage(22);
+            khai.setAttackCooldown(0.8 * khai.getTuningState().attackCooldownMultiplier());
+            khai.setAttacking(true);
+        }
+
         khai.updateKhaiAnimation(dt);
         
         // Update skill cooldown
@@ -854,11 +910,10 @@ public class GameScene {
             int skillIndex = khai.getKhaiSkillIndex();
             fireKhaiSkill(khai, skillIndex);
             
-            // Reset to idle animation
-            SpriteSheet idleSheet = assets.sheet("enemy.khai_boss_form", 128, 128);
-            if (idleSheet != null) {
-                AnimationStrip idle = new AnimationStrip(0, 0, 1, 1);
-                khai.setSpriteSheet(idleSheet, idle, idle, idle);
+            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 160);
+            if (sheet != null) {
+                AnimationStrip idle = khaiBossIdleLoopStrip();
+                khai.setSpriteSheet(sheet, idle, idle, idle);
             }
             
             khai.advanceKhaiSkill();
@@ -868,15 +923,15 @@ public class GameScene {
         if (khai.getSkillCooldown() <= 0 && khai.getKhaiAnimationTimer() <= 0) {
             int skillIndex = khai.getKhaiSkillIndex();
             
-            // Update sprite sheet to show skill animation
-            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 128);
+            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 160);
             if (sheet != null) {
-                AnimationStrip skillAnim = new AnimationStrip(0, skillIndex + 1, 1, 1);
-                khai.setSpriteSheet(sheet, skillAnim, skillAnim, skillAnim);
+                AnimationStrip idle = khaiBossIdleLoopStrip();
+                khai.setSpriteSheet(sheet, idle, idle, idle);
+                khai.setBossAttackVisualHold(KHAI_BOSS_SKILL_WINDUP_SEC);
             }
             
             // Set animation timer (skill fires when this reaches 0)
-            khai.setKhaiAnimationTimer(0.6);
+            khai.setKhaiAnimationTimer(KHAI_BOSS_SKILL_WINDUP_SEC);
         }
     }
     
@@ -1000,12 +1055,6 @@ public class GameScene {
         enemy.stepVertical(dt);
         enemy.setOnGround(false);
 
-        // Check ground collision
-        if (enemy.getY() + enemy.getHeight() >= GROUND_Y) {
-            enemy.landOn(GROUND_Y);
-        }
-
-        // Check platform collisions
         if (!enemy.isOnGround()) {
             for (PlatformTile platform : arena.platforms()) {
                 if (enemy.getVy() >= 0 && CollisionManager.landsOnTop(enemy, platform, previousBottom)) {
@@ -1015,7 +1064,6 @@ public class GameScene {
             }
         }
 
-        // Additional check: if enemy is very close to a platform surface, snap them to it
         if (!enemy.isOnGround() && enemy.getVy() >= 0) {
             for (PlatformTile platform : arena.platforms()) {
                 double currentBottom = enemy.getY() + enemy.getHeight();
@@ -1026,6 +1074,10 @@ public class GameScene {
                     break;
                 }
             }
+        }
+
+        if (!enemy.isOnGround() && enemy.getY() + enemy.getHeight() >= GROUND_Y) {
+            enemy.landOn(GROUND_Y);
         }
     }
 
@@ -1070,11 +1122,10 @@ public class GameScene {
         // and felt out of sync with shots. Tie burst length to this shot's cooldown (capped for slow weapons).
         muzzleFlashDuration = Math.min(0.14, Math.max(0.035, shootCooldown * 0.92));
 
-        double originX = player.getCenterX();
-        double originY = player.getY() + player.getHeight() * 0.35;
-        double targetX = input.getMouseX() + arena.cameraX();
-        double targetY = input.getMouseY();
-        double angle = Math.atan2(targetY - originY, targetX - originX);
+        GunfireGeometry geo = computeGunfireGeometry();
+        double angle = geo.aimAngle();
+        double originX = geo.muzzleX();
+        double originY = geo.muzzleY();
 
         muzzleFlashTimer = muzzleFlashDuration;
         muzzleFlashX = originX;
@@ -1248,9 +1299,9 @@ public class GameScene {
         int batchEnd = Math.min(mobsSpawned + BATCH_SIZE, totalMobsToSpawn);
         
         for (int i = batchStart; i < batchEnd; i++) {
-            double x = arena.mobSpawnX(i, totalMobsToSpawn);
-            // Spawn enemies high above so they fall and land on platforms
-            EnemyActor enemy = new EnemyActor(stage.enemyName(), x, 50, 42, 54,
+            double x = arena.randomMobSpawnX(random, 42);
+            double spawnY = 40 + random.nextDouble() * 75;
+            EnemyActor enemy = new EnemyActor(stage.enemyName(), x, spawnY, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
             if (!stage.enemySpriteIds().isEmpty()) {
                 applyEnemySprite(enemy, stage.enemySpriteIds().get(i % stage.enemySpriteIds().size()));
@@ -1280,7 +1331,7 @@ public class GameScene {
             width = 74 * 3;
             height = 96 * 3;
         } else if ("Khai (Boss Form)".equals(stage.bossName())) {
-            // Khai Boss Form is 3x bigger (128x128 sprite scaled up)
+            // Khai Boss Form uses 128x160 cells scaled up.
             width = 128 * 2.5;
             height = 128 * 2.5;
         } else if ("LAIR Mimic (False Sir Khai)".equals(stage.bossName()) ||
@@ -1356,11 +1407,11 @@ public class GameScene {
                 attack = new AnimationStrip(1, 0, 8, 8);
             }
             case "enemy.caesar_hunos" -> {
+                // CaesarHunos_Idle.png is 3000×120 → 25× grid of 120×120 (was incorrectly capped at 8 frames).
                 sheet = assets.sheet("enemy.caesar_hunos", 120, 120);
-                // CaesarHunos_Idle.png has multiple frames - use them for idle animation
-                idle = new AnimationStrip(0, 0, 8, 4);  // 8 frames at 4 fps for smooth idle
-                walk = new AnimationStrip(0, 0, 8, 4);  // Same as idle since he doesn't move
-                attack = new AnimationStrip(0, 0, 8, 4);
+                idle = new AnimationStrip(0, 0, 25, 9);
+                walk = idle;
+                attack = idle;
             }
             case "enemy.khai_mimic_human" -> {
                 // khai_with_zombified.png 256×128 @ 32×32: row 0 has 8 opaque cells; row 1 cols 4–7 are fully empty.
@@ -1378,11 +1429,12 @@ public class GameScene {
                 attack = new AnimationStrip(3, 0, 17, 7);
             }
             case "enemy.khai_boss_form" -> {
-                // khai (boss form).png has 4 columns: Idle, Stomp, Scream, Throw
-                sheet = assets.sheet(spriteId, 128, 128);
-                idle = new AnimationStrip(0, 0, 1, 1);  // Column 1: Idle
-                walk = new AnimationStrip(0, 0, 1, 1);  // Stationary boss
-                attack = new AnimationStrip(0, 0, 1, 1);
+                // khai_boss_form.png is 2560×640 → 20×4 grid @ 128×160. Row 0 = idle, rows 1–3 = stomp / scream / throw.
+                sheet = assets.sheet(spriteId, 128, 160);
+                AnimationStrip idleLoop = khaiBossIdleLoopStrip();
+                idle = idleLoop;
+                walk = idleLoop;
+                attack = idleLoop;
             }
             default -> {
                 sheet = assets.sheet(spriteId, 32, 32);
@@ -1412,6 +1464,9 @@ public class GameScene {
         if (stageIndex == stages.size() - 1) {
             finished = true;
             victory = true;
+            runTimer.stop();
+            completedRun = new LeaderboardEntry(playerName, runTimer.getElapsedMillis(), Instant.now());
+            LeaderboardManager.get().submitEntryAsync(completedRun, null);
             setStatus(getStageClearMessage(stage));
             return;
         }
@@ -1470,8 +1525,9 @@ public class GameScene {
         arena.exitMarker().render(gc);
         enemies.renderAll(gc);
         player.render(gc);
-        visualRenderer.renderPlayerWeapon(player, weapon, finished, victory, getAimAngle(),
-                muzzleFlashTimer, muzzleFlashDuration);
+        GunfireGeometry gunAim = computeGunfireGeometry();
+        visualRenderer.renderPlayerWeapon(player, weapon, finished, victory, gunAim.aimAngle(),
+                gunAim.shoulderOnRight(), muzzleFlashTimer, muzzleFlashDuration);
         visualRenderer.renderMuzzleFlash(muzzleFlashTimer, muzzleFlashDuration,
                 muzzleFlashX, muzzleFlashY, muzzleFlashAngle);
         projectiles.renderAll(gc);
@@ -1509,18 +1565,43 @@ public class GameScene {
         }
     }
 
-    private double getAimAngle() {
-        double originX = player.getCenterX();
-        double originY = player.getY() + player.getHeight() * 0.35;
+    /**
+     * Shoulder pivot and aim match {@link GameVisualRenderer#renderPlayerWeapon}; muzzle offsets match barrel tips in
+     * {@link GameVisualRenderer#renderProceduralWeapon} / SMG sprite placement.
+     */
+    private GunfireGeometry computeGunfireGeometry() {
+        double cx = player.getCenterX();
+        double torsoY = player.getY() + player.getHeight() * 0.35;
         double targetX = input.getMouseX() + arena.cameraX();
         double targetY = input.getMouseY();
 
+        double aimAngle;
+        boolean aimingRight;
         if (targetX == 0 && targetY == 0) {
-            return player.getFacing() >= 0 ? 0 : Math.PI;
+            aimAngle = player.getFacing() >= 0 ? 0 : Math.PI;
+            aimingRight = Math.cos(aimAngle) >= 0;
+        } else {
+            double prelim = Math.atan2(targetY - torsoY, targetX - cx);
+            aimingRight = Math.cos(prelim) >= 0;
+            double sx = cx + (aimingRight ? 10 : -10);
+            double sy = player.getY() + player.getHeight() * 0.38;
+            aimAngle = Math.atan2(targetY - sy, targetX - sx);
         }
 
-        return Math.atan2(targetY - originY, targetX - originX);
+        double shoulderX = cx + (aimingRight ? 10 : -10);
+        double shoulderY = player.getY() + player.getHeight() * 0.38;
+
+        WeaponType wt = weapon.getType();
+        double mlx = wt.muzzleTipLocalX();
+        double mly = wt.muzzleTipLocalY();
+        double cos = Math.cos(aimAngle);
+        double sin = Math.sin(aimAngle);
+        double muzzleX = shoulderX + cos * mlx - sin * mly;
+        double muzzleY = shoulderY + sin * mlx + cos * mly;
+        return new GunfireGeometry(muzzleX, muzzleY, aimAngle, aimingRight);
     }
+
+    private record GunfireGeometry(double muzzleX, double muzzleY, double aimAngle, boolean shoulderOnRight) {}
 
     private double getAbilityMeterFill() {
         if (abilityCooldown <= 0) {
@@ -1574,7 +1655,7 @@ public class GameScene {
     private void exitToMainMenu() {
         GameContext.audio().stopBackgroundMusic();
         loop.stop();
-        GameContext.showIntro();
+        GameContext.showMainMenu();
     }
 
     private boolean isPauseMenuButtonHit() {

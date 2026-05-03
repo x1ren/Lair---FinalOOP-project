@@ -74,7 +74,7 @@ public final class StageCatalog {
                         List.of(),
                         "Khai (Boss Form)",
                         16250, // 25x buff: 650 → 16250
-                        0,
+                        88,
                         "enemy.khai_boss_form",
                         "stage.covered_court",
                         Color.color(0.28, 0.12, 0.32)

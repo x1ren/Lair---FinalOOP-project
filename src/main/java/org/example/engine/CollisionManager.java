@@ -34,22 +34,30 @@ public final class CollisionManager {
         if (!horizontalOverlap) {
             return false;
         }
-        
+
         // Current bottom position of the actor
         double currentBottom = actor.getY() + actor.getHeight();
+        double surfaceY = surface.getY();
         
         // Actor should land if:
         // 1. They were above or at the surface in the previous frame
         // 2. They are now at or below the surface
         // This catches actors falling onto platforms from above
-        if (previousBottom <= surface.getY() && currentBottom >= surface.getY()) {
+        if (previousBottom <= surfaceY && currentBottom >= surfaceY) {
+            return true;
+        }
+
+        // Large dt / high fall speed: feet can jump past the top line in one step; still treat as a landing
+        // if we only missed by a small band (stops huge bosses from falling through to the hard ground below art).
+        final double maxMissPastTop = 72;
+        if (currentBottom >= surfaceY && previousBottom > surfaceY && previousBottom <= surfaceY + maxMissPastTop) {
             return true;
         }
         
         // Also land if actor is already very close to being on the surface
         // This handles the case where actor is standing on the platform
         // Allow a small penetration tolerance
-        if (Math.abs(currentBottom - surface.getY()) <= 2) {
+        if (Math.abs(currentBottom - surfaceY) <= 2) {
             return true;
         }
         

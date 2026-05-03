@@ -13,6 +13,8 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>21</javafx.version>
+        <lair.cmd.args></lair.cmd.args>
+        <lair.stage></lair.stage>
     </properties>
 
     <dependencies>
@@ -56,6 +58,10 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>org.example.Main</mainClass>
+                    <commandlineArgs>${lair.cmd.args}</commandlineArgs>
+                    <options>
+                        <option>-Dlair.stage=${lair.stage}</option>
+                    </options>
                 </configuration>
             </plugin>
         </plugins>

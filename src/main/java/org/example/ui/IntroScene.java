@@ -22,13 +22,15 @@ import java.util.List;
  * school (Library, Canteen, Gym where Caesar falls, then Courtyard for the mimic). After this scene the player
  * picks which survivor they play and enters that same progression.
  *
- * Phases:
- *   0  : Title card
- *   1  : Setting     Sir Khai helps the group with their project
- *   2  : Meteor      The six friends investigate the crash
- *   3  : Infection   Caesar takes the photo and the gas spreads
- *   4  : Awakening   The school is changed and Sir Khai explains LAIR
- *   5  : Transition  Player chooses who awakened first
+ * Phases (story intro only; title card is {@link #IntroScene()}):
+ *   0  : Setting     Sir Khai helps the group with their project
+ *   1  : Meteor      The six friends investigate the crash
+ *   2  : Infection   Caesar takes the photo and the gas spreads
+ *   3  : Awakening   The school is changed and Sir Khai explains LAIR
+ *   4  : Transition  Player chooses who awakened first
+ *
+ * Use {@link #IntroScene()} for the opening title card only (then main menu).
+ * Use {@link #createStoryIntro()} for the full dialogue after the main menu.
  */
 public class IntroScene {
 
@@ -102,7 +104,21 @@ public class IntroScene {
     private double bgPulse = 0;
     private AnimationTimer pulseTimer;
 
+    /** When true, only the title card is shown; advancing opens the main menu. */
+    private final boolean titleSplashOnly;
+
+    /** Opening title card; click / key advances to {@link GameContext#showMainMenu()}. */
     public IntroScene() {
+        this(true);
+    }
+
+    /** Cinematic dialogue after main menu; ends at character select. */
+    public static IntroScene createStoryIntro() {
+        return new IntroScene(false);
+    }
+
+    private IntroScene(boolean titleSplashOnly) {
+        this.titleSplashOnly = titleSplashOnly;
         Pane root = new Pane(canvas);
         scene = new Scene(root, W, H);
         scene.setCursor(javafx.scene.Cursor.DEFAULT);
@@ -116,7 +132,25 @@ public class IntroScene {
         });
 
         startPulseLoop();
-        renderTitle();
+        if (titleSplashOnly) {
+            renderTitle();
+        } else {
+            titlePhase = false;
+            lineIndex = 0;
+            showLine(lineIndex);
+        }
+    }
+
+    private void stopAuxiliaryTimers() {
+        if (typewriter != null) {
+            typewriter.stop();
+        }
+        if (typewriterTimer != null) {
+            typewriterTimer.stop();
+        }
+        if (pulseTimer != null) {
+            pulseTimer.stop();
+        }
     }
 
     // ── Advance ───────────────────────────────────────────────
@@ -125,6 +159,12 @@ public class IntroScene {
         if (finished) return;
 
         if (titlePhase) {
+            if (titleSplashOnly) {
+                finished = true;
+                stopAuxiliaryTimers();
+                GameContext.showMainMenu();
+                return;
+            }
             titlePhase = false;
             lineIndex = 0;
             showLine(lineIndex);

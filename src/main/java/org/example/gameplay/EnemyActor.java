@@ -149,11 +149,20 @@ public class EnemyActor extends GameObject {
         this.moving = moving;
     }
 
+    public void setFacing(int facing) {
+        this.facing = facing < 0 ? -1 : 1;
+    }
+
     public void setAttacking(boolean attacking) {
         if (attacking && boss) {
             bossMeleeAnimHoldSec = 0.12;
         }
         this.attacking = attacking;
+    }
+
+    /** Holds {@link #attackStrip} visible for bosses (e.g. Khai boss skill windup) independent of melee flicker. */
+    public void setBossAttackVisualHold(double seconds) {
+        bossMeleeAnimHoldSec = Math.max(bossMeleeAnimHoldSec, seconds);
     }
     
     public void markAsCaesarHunos() {
@@ -399,8 +408,8 @@ public class EnemyActor extends GameObject {
     }
 
     public void chase(PlayerActor player, double dt, double minX, double maxX, double slowMoveFactor) {
-        // Caesar Hunos and Khai Boss Form don't chase - they stay in place
-        if (isCaesarHunos || isKhaiBossForm) {
+        // Caesar Hunos uses scripted sidestep + skills instead of player chase.
+        if (isCaesarHunos) {
             moving = false;
             return;
         }
@@ -453,7 +462,39 @@ public class EnemyActor extends GameObject {
             AnimationStrip strip = resolveStrip();
             int row = strip == null ? 0 : strip.row();
             int column = strip == null ? 0 : strip.frameAt(animationTime);
-            spriteSheet.drawFrame(gc, row, column, x - paddingX, y - paddingY, getWidth() + paddingX * 2, getHeight() + paddingY * 2, facing > 0);
+            double drawW = getWidth() + paddingX * 2;
+            double drawH = getHeight() + paddingY * 2;
+            double dx = x - paddingX;
+            double dy = y - paddingY;
+            boolean flip = facing > 0;
+            // CaesarHunos_Idle cells are 120×120 but opaque art only reaches ~y=107 — omit dead band so the boss fills the silhouette.
+            if (isCaesarHunos && spriteSheet.frameWidth() == 120 && spriteSheet.frameHeight() == 120) {
+                spriteSheet.drawFramePartial(gc, row, column, dx, dy, drawW, drawH, flip,
+                        0, 0, 120, 107);
+            } else if (isKhaiBossForm && spriteSheet.frameWidth() == 128 && spriteSheet.frameHeight() == 160) {
+                // Asymmetric art: never mirror (flipX), or limbs smear at the edges.
+                // Khai's sheet uses 128×160 cells. Treat the logical box as the floor anchor and draw each frame
+                // bottom-centered so transparent padding and attack poses cannot move the hitbox/health bar.
+                // Idle soles sit a few pixels above the cell bottom; nudge down in proportion to scale so feet meet the floor.
+                flip = false;
+                final double srcW = 128;
+                final double srcH = 160;
+                final double feetBelowOpaqueArtSrcPx = 8;
+                double scale = Math.min(drawW / srcW, drawH / srcH);
+                int destW = Math.max(1, (int) Math.round(srcW * scale));
+                int destH = Math.max(1, (int) Math.round(srcH * scale));
+                double rdx = Math.rint(x + (getWidth() - destW) / 2.0);
+                double feetNudge = feetBelowOpaqueArtSrcPx * (destH / srcH);
+                double rdy = Math.rint(y + getHeight() - destH + feetNudge);
+                gc.save();
+                gc.beginPath();
+                gc.rect(rdx, rdy, destW, destH);
+                gc.clip();
+                spriteSheet.drawFrame(gc, row, column, rdx, rdy, destW, destH, flip);
+                gc.restore();
+            } else {
+                spriteSheet.drawFrame(gc, row, column, dx, dy, drawW, drawH, flip);
+            }
         } else {
             gc.setFill(Color.color(color.getRed(), color.getGreen(), color.getBlue(), 0.18));
             gc.fillRect(x - pixel * 2, y - pixel * 2, getWidth() + pixel * 4, getHeight() + pixel * 4);

@@ -7,10 +7,13 @@ import org.example.assets.AssetPreloader;
 import org.example.assets.AssetRegistry;
 import org.example.audio.AudioManager;
 import org.example.player.CharacterType;
+import org.example.leaderboard.LeaderboardEntry;
 import org.example.ui.CharacterSelectScene;
 import org.example.ui.EndingScene;
 import org.example.ui.GameScene;
 import org.example.ui.IntroScene;
+import org.example.ui.MainMenuScene;
+import org.example.ui.PostGameLeaderboardScene;
 
 public final class GameContext {
 
@@ -18,6 +21,9 @@ public final class GameContext {
     private static AssetRegistry assets;
     private static AudioManager audio;
     private static AssetPreloader preloader;
+
+    /** Display name for the current run; set on main menu, cleared when returning to main menu. */
+    private static String sessionPlayerName;
 
     private GameContext() {
     }
@@ -33,25 +39,60 @@ public final class GameContext {
         preloader.start();
     }
 
-    public static void showIntro() {
+    /** Opening title card (same as before); advances to main menu. */
+    public static void showTitleScreen() {
         switchScene(new IntroScene().getScene());
+    }
+
+    public static void showMainMenu() {
+        sessionPlayerName = null;
+        switchScene(new MainMenuScene().getScene());
+    }
+
+    /** Full dialogue intro after main menu; ends at character select. */
+    public static void showIntro() {
+        switchScene(IntroScene.createStoryIntro().getScene());
     }
 
     public static void showCharacterSelect() {
         switchScene(new CharacterSelectScene().getScene());
     }
 
-    public static void showGame(CharacterType character) {
-        switchScene(new GameScene(character).getScene());
+    /**
+     * Skip menus and jump into the story at a given stage (see {@link LaunchConfig}). Sets session name to
+     * {@link LaunchConfig#DEBUG_PLAYER_NAME}.
+     */
+    public static void enterGameFromDebugShortcut(int stageCount) {
+        sessionPlayerName = LaunchConfig.debugPlayerName();
+        CharacterType character = LaunchConfig.debugCharacter();
+        int idx = LaunchConfig.debugStageIndex0Based(stageCount);
+        switchScene(new GameScene(character, sessionPlayerName, idx).getScene());
     }
 
-    public static void showEnding() {
-        switchScene(new EndingScene().getScene());
+    public static void showGame(CharacterType character) {
+        String name = sessionPlayerName;
+        if (name == null || name.isBlank()) {
+            showMainMenu();
+            return;
+        }
+        switchScene(new GameScene(character, name).getScene());
+    }
+
+    public static void showEnding(LeaderboardEntry completedRun) {
+        switchScene(new EndingScene(completedRun).getScene());
+    }
+
+    public static void showPostGameLeaderboard(LeaderboardEntry highlightRun) {
+        switchScene(new PostGameLeaderboardScene(highlightRun).getScene());
     }
 
     public static void switchScene(Scene scene) {
         stage.setScene(scene);
         stage.show();
+    }
+
+    public static void setSessionPlayerName(String name) {
+        sessionPlayerName = name;
     }
 
     public static AssetRegistry assets() {
