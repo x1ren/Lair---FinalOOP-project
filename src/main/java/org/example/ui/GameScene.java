@@ -577,17 +577,39 @@ public class GameScene {
         setStatus("Mutated Vendor summons a horde of students!");
     }
 
-    /** Caesar / final Khai are not full melee chasers; inch sideways so they stay readable and follow the fight. */
+    private static final double KHAI_BOSS_MOVE_SPEED = 38;
+
+    /** Caesar inches sideways for readability; Khai boss form uses a slow, controlled Stage 4 lane. */
     private void repositionStationaryMajorBoss(EnemyActor boss, double dt) {
+        double cx = player.getCenterX() - boss.getCenterX();
+        if (boss.isKhaiBossForm()) {
+            if (cx < -12) {
+                boss.setFacing(-1);
+            } else if (cx > 12) {
+                boss.setFacing(1);
+            }
+            double minX = Math.max(20, arena.worldWidth() - 760);
+            double maxX = Math.max(minX, arena.worldWidth() - boss.getWidth() - 60);
+            double desiredX = Math.max(minX, Math.min(maxX, player.getCenterX() + 220));
+            double delta = desiredX - boss.getX();
+            double deadzone = 48;
+            double dx = 0;
+            if (Math.abs(delta) > deadzone) {
+                dx = Math.signum(delta) * Math.min(Math.abs(delta) - deadzone, KHAI_BOSS_MOVE_SPEED * dt);
+            }
+            boss.setX(Math.max(minX, Math.min(maxX, boss.getX() + dx)));
+            boss.setMoving(Math.abs(dx) > 0.0001);
+            return;
+        }
+
         double minX = 20;
         double maxX = arena.worldWidth() - boss.getWidth() - 20;
-        double cx = player.getCenterX() - boss.getCenterX();
         if (cx < -12) {
             boss.setFacing(-1);
         } else if (cx > 12) {
             boss.setFacing(1);
         }
-        double speedCap = boss.isKhaiBossForm() ? 54 : 44;
+        double speedCap = 44;
         double deadzone = 72;
         double dx = 0;
         if (Math.abs(cx) > deadzone) {
@@ -883,18 +905,7 @@ public class GameScene {
     private static final double KHAI_BOSS_SKILL_WINDUP_SEC = 0.65;
 
     private static AnimationStrip khaiBossIdleLoopStrip() {
-        return new AnimationStrip(0, 0, 14, 14 / 1.45);
-    }
-
-    private static AnimationStrip khaiBossSkillStrip(int skillIndex) {
-        int row = skillIndex + 1;
-        int frames = switch (skillIndex) {
-            case 0 -> 16;
-            case 1 -> 18;
-            case 2 -> 19;
-            default -> 1;
-        };
-        return new AnimationStrip(row, 0, frames, frames / KHAI_BOSS_SKILL_WINDUP_SEC);
+        return new AnimationStrip(0, 0, 1, 1);
     }
 
     private void updateKhaiBossBehavior(EnemyActor khai, double dt) {
@@ -915,7 +926,7 @@ public class GameScene {
             int skillIndex = khai.getKhaiSkillIndex();
             fireKhaiSkill(khai, skillIndex);
             
-            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 128);
+            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 160);
             if (sheet != null) {
                 AnimationStrip idle = khaiBossIdleLoopStrip();
                 khai.setSpriteSheet(sheet, idle, idle, idle);
@@ -928,11 +939,10 @@ public class GameScene {
         if (khai.getSkillCooldown() <= 0 && khai.getKhaiAnimationTimer() <= 0) {
             int skillIndex = khai.getKhaiSkillIndex();
             
-            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 128);
+            SpriteSheet sheet = assets.sheet("enemy.khai_boss_form", 128, 160);
             if (sheet != null) {
                 AnimationStrip idle = khaiBossIdleLoopStrip();
-                AnimationStrip skill = khaiBossSkillStrip(skillIndex);
-                khai.setSpriteSheet(sheet, idle, idle, skill);
+                khai.setSpriteSheet(sheet, idle, idle, idle);
                 khai.setBossAttackVisualHold(KHAI_BOSS_SKILL_WINDUP_SEC);
             }
             
@@ -1337,7 +1347,7 @@ public class GameScene {
             width = 74 * 3;
             height = 96 * 3;
         } else if ("Khai (Boss Form)".equals(stage.bossName())) {
-            // Khai Boss Form is 3x bigger (128x128 sprite scaled up)
+            // Khai Boss Form uses 128x160 cells scaled up.
             width = 128 * 2.5;
             height = 128 * 2.5;
         } else if ("LAIR Mimic (False Sir Khai)".equals(stage.bossName()) ||
@@ -1435,8 +1445,8 @@ public class GameScene {
                 attack = new AnimationStrip(3, 0, 17, 7);
             }
             case "enemy.khai_boss_form" -> {
-                // khai_boss_form.png is 2560×640 → 20×5 grid @ 128×128. Row 0 = idle (14 cells), rows 1–3 = stomp / scream / throw.
-                sheet = assets.sheet(spriteId, 128, 128);
+                // khai_boss_form.png is 2560×640 → 20×4 grid @ 128×160. Row 0 = idle, rows 1–3 = stomp / scream / throw.
+                sheet = assets.sheet(spriteId, 128, 160);
                 AnimationStrip idleLoop = khaiBossIdleLoopStrip();
                 idle = idleLoop;
                 walk = idleLoop;

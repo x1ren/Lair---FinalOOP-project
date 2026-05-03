@@ -9,18 +9,6 @@ public class EnemyActor extends GameObject {
 
     private static final double DEFAULT_SLOW_MOVE_FACTOR = 0.55;
 
-    /**
-     * Horizontal re-centering per frame (in sheet cell pixels) for {@code khai_boss_form.png}. Each 128×128 cell
-     * places the figure at a different X offset; scaling up made the idle loop slide ~2 screens worth — looked like
-     * teleporting pieces. Values are {@code 64 - mean(alpha_x)} for opaque pixels in each cell.
-     */
-    private static final double[][] KHAI_BOSS_FORM_ANCHOR_OFFSET_CELL_PX = {
-            {-14.48, -33.58, 0.27, 33.36, 16.74, -14.50, -33.53, 0.14, 33.36, 16.76, -14.47, -33.64, 0.23, 35.52},
-            {-15.46, -35.16, 1.04, 35.79, 16.55, -15.54, -35.56, -6.35, 29.98, 14.01, -14.25, -20.89, 5.74, 19.90, 11.84, -15.71},
-            {-14.38, -33.88, 1.14, 32.92, 16.72, -14.13, -33.53, 3.78, 32.68, 19.21, -10.37, -37.54, 0.24, 31.77, 14.24, -13.72, -40.27, 55.32},
-            {-13.85, -31.68, -1.35, 32.19, 17.27, -14.00, -31.68, 0.19, 24.73, 14.13, -8.50, -20.45, -0.03, 21.15, 11.98, -8.92, -23.83, 45.42, 27.00},
-    };
-
     private final String name;
     private int hp;
     private final int maxHp;
@@ -483,28 +471,24 @@ public class EnemyActor extends GameObject {
             if (isCaesarHunos && spriteSheet.frameWidth() == 120 && spriteSheet.frameHeight() == 120) {
                 spriteSheet.drawFramePartial(gc, row, column, dx, dy, drawW, drawH, flip,
                         0, 0, 120, 107);
-            } else if (isKhaiBossForm && spriteSheet.frameWidth() == 128 && spriteSheet.frameHeight() == 128) {
-                // Sheet art is asymmetric; mirroring via flipX splits limbs (ghost slabs at screen edges). Draw
-                // left-authored frames only. Preserve cell aspect when scaling so the torso is not stretched into a band.
-                boolean flip = false;
-                double srcW = 128;
-                double srcH = row == 0 ? 89 : 128;
-                double cropY = row == 0 ? 39 : 0;
+            } else if (isKhaiBossForm && spriteSheet.frameWidth() == 128 && spriteSheet.frameHeight() == 160) {
+                // Asymmetric art: never mirror (flipX), or limbs smear at the edges.
+                // Khai's sheet uses 128×160 cells. Treat the logical box as the floor anchor and draw each frame
+                // bottom-centered so transparent padding and attack poses cannot move the hitbox/health bar.
+                flip = false;
+                final double srcW = 128;
+                final double srcH = 160;
                 double scale = Math.min(drawW / srcW, drawH / srcH);
-                double destW = srcW * scale;
-                double destH = srcH * scale;
-                double nudgeCell = khaiBossFormAnchorOffsetCellPx(row, column);
-                double nudgeScreen = nudgeCell * scale;
-                double dx = x + (getWidth() - destW) / 2.0 + nudgeScreen;
-                double dy = y + getHeight() - destH;
-                dx = Math.round(dx);
-                dy = Math.round(dy);
-                if (row == 0) {
-                    spriteSheet.drawFramePartial(gc, row, column, dx, dy, destW, destH, flip,
-                            0, cropY, srcW, srcH);
-                } else {
-                    spriteSheet.drawFrame(gc, row, column, dx, dy, destW, destH, flip);
-                }
+                int destW = Math.max(1, (int) Math.round(srcW * scale));
+                int destH = Math.max(1, (int) Math.round(srcH * scale));
+                double rdx = Math.rint(x + (getWidth() - destW) / 2.0);
+                double rdy = Math.rint(y + getHeight() - destH);
+                gc.save();
+                gc.beginPath();
+                gc.rect(rdx, rdy, destW, destH);
+                gc.clip();
+                spriteSheet.drawFrame(gc, row, column, rdx, rdy, destW, destH, flip);
+                gc.restore();
             } else {
                 spriteSheet.drawFrame(gc, row, column, dx, dy, drawW, drawH, flip);
             }
@@ -555,17 +539,6 @@ public class EnemyActor extends GameObject {
             double labelW = name.length() * 7.0;
             gc.fillText(name, x + (getWidth() - labelW) / 2.0, y - 16);
         }
-    }
-
-    private static double khaiBossFormAnchorOffsetCellPx(int row, int column) {
-        if (row < 0 || row >= KHAI_BOSS_FORM_ANCHOR_OFFSET_CELL_PX.length) {
-            return 0;
-        }
-        double[] offsets = KHAI_BOSS_FORM_ANCHOR_OFFSET_CELL_PX[row];
-        if (column < 0 || column >= offsets.length) {
-            return 0;
-        }
-        return offsets[column];
     }
 
     private AnimationStrip resolveStrip() {
