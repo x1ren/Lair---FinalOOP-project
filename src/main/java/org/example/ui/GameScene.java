@@ -48,6 +48,9 @@ public class GameScene {
     private static final int H = Main.HEIGHT;
     private static final double GROUND_Y = 620;
     private static final double GRAVITY = 1500;
+    /** Shared dash for all characters: flat horizontal speed, does not mutate CharacterType stats. */
+    private static final double PLAYER_DASH_SPEED_PX = 1000.0;
+    private static final double PLAYER_DASH_DURATION_SEC = 0.1;
     private static final double PIXEL = 4;
     private static final double PAUSE_MENU_BUTTON_W = 288;
     private static final double PAUSE_MENU_BUTTON_H = 42;
@@ -97,6 +100,8 @@ public class GameScene {
     private double overdriveTimer;
     private double focusTimer;
     private double invulnerableTimer;
+    /** Remaining dash time; while > 0 horizontal move uses {@link #PLAYER_DASH_SPEED_PX}. Ignores repeat E to avoid stacking. */
+    private double playerDashTimer;
     private int focusShots;
     private int overloadShots;
     private boolean stageBossSpawned;
@@ -204,6 +209,7 @@ public class GameScene {
         overdriveTimer = Math.max(0, overdriveTimer - dt);
         focusTimer = Math.max(0, focusTimer - dt);
         invulnerableTimer = Math.max(0, invulnerableTimer - dt);
+        playerDashTimer = Math.max(0, playerDashTimer - dt);
         muzzleFlashTimer = Math.max(0, muzzleFlashTimer - dt);
 
         if (focusTimer == 0) {
@@ -292,10 +298,15 @@ public class GameScene {
     }
 
     private void handlePlayerInput() {
-        double moveSpeed = character.getMovementSpeedPx();
-        if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
-            moveSpeed *= combatProfile.overdriveMoveMultiplier();
+        if (input.isJustPressed(KeyCode.E) && playerDashTimer <= 0) {
+            playerDashTimer = PLAYER_DASH_DURATION_SEC;
         }
+
+        double baseMoveSpeed = character.getMovementSpeedPx();
+        if (overdriveTimer > 0 && character == CharacterType.ILDE_JAN_FIGUERAS) {
+            baseMoveSpeed *= combatProfile.overdriveMoveMultiplier();
+        }
+        double moveSpeed = playerDashTimer > 0 ? PLAYER_DASH_SPEED_PX : baseMoveSpeed;
 
         player.setVx(0);
         if (input.isDown(KeyCode.A) || input.isDown(KeyCode.LEFT)) {
@@ -305,6 +316,9 @@ public class GameScene {
         if (input.isDown(KeyCode.D) || input.isDown(KeyCode.RIGHT)) {
             player.setVx(moveSpeed);
             player.setFacing(1);
+        }
+        if (playerDashTimer > 0 && player.getVx() == 0) {
+            player.setVx(player.getFacing() * PLAYER_DASH_SPEED_PX);
         }
 
         if (input.isJustPressed(KeyCode.SPACE) && player.isOnGround()) {
@@ -1262,6 +1276,7 @@ public class GameScene {
         spikeEffects.clear();
         splittingSpikes.clear();
         stageIntroTimer = 4.5;
+        playerDashTimer = 0;
         stageBossSpawned = false;
         khaiMimicMorphTriggered = false;
         arena.exitMarker().setActive(false);
