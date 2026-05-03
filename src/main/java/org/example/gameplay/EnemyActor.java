@@ -408,8 +408,8 @@ public class EnemyActor extends GameObject {
     }
 
     public void chase(PlayerActor player, double dt, double minX, double maxX, double slowMoveFactor) {
-        // Caesar Hunos and Khai Boss Form don't chase - they stay in place
-        if (isCaesarHunos || isKhaiBossForm) {
+        // Caesar Hunos uses scripted sidestep + skills instead of player chase.
+        if (isCaesarHunos) {
             moving = false;
             return;
         }

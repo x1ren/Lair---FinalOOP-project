@@ -577,30 +577,9 @@ public class GameScene {
         setStatus("Mutated Vendor summons a horde of students!");
     }
 
-    private static final double KHAI_BOSS_MOVE_SPEED = 38;
-
-    /** Caesar inches sideways for readability; Khai boss form uses a slow, controlled Stage 4 lane. */
+    /** Caesar inches sideways for readability while casting. */
     private void repositionStationaryMajorBoss(EnemyActor boss, double dt) {
         double cx = player.getCenterX() - boss.getCenterX();
-        if (boss.isKhaiBossForm()) {
-            if (cx < -12) {
-                boss.setFacing(-1);
-            } else if (cx > 12) {
-                boss.setFacing(1);
-            }
-            double minX = Math.max(20, arena.worldWidth() - 760);
-            double maxX = Math.max(minX, arena.worldWidth() - boss.getWidth() - 60);
-            double desiredX = Math.max(minX, Math.min(maxX, player.getCenterX() + 220));
-            double delta = desiredX - boss.getX();
-            double deadzone = 48;
-            double dx = 0;
-            if (Math.abs(delta) > deadzone) {
-                dx = Math.signum(delta) * Math.min(Math.abs(delta) - deadzone, KHAI_BOSS_MOVE_SPEED * dt);
-            }
-            boss.setX(Math.max(minX, Math.min(maxX, boss.getX() + dx)));
-            boss.setMoving(Math.abs(dx) > 0.0001);
-            return;
-        }
 
         double minX = 20;
         double maxX = arena.worldWidth() - boss.getWidth() - 20;
@@ -909,11 +888,16 @@ public class GameScene {
     }
 
     private void updateKhaiBossBehavior(EnemyActor khai, double dt) {
-        // Khai stays stationary, only uses physics for gravity
         updateEnemyPhysics(khai, dt);
-        repositionStationaryMajorBoss(khai, dt);
-        
-        // Update animation timer
+        khai.chase(player, dt, 20, arena.worldWidth() - khai.getWidth() - 20,
+                combatProfile.enemySlowMoveFactor());
+
+        if (khai.getAttackCooldown() <= 0 && CollisionManager.intersects(khai, player)) {
+            applyDamage(22);
+            khai.setAttackCooldown(0.8 * khai.getTuningState().attackCooldownMultiplier());
+            khai.setAttacking(true);
+        }
+
         khai.updateKhaiAnimation(dt);
         
         // Update skill cooldown
