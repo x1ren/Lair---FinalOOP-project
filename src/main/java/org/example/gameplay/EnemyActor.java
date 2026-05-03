@@ -475,14 +475,17 @@ public class EnemyActor extends GameObject {
                 // Asymmetric art: never mirror (flipX), or limbs smear at the edges.
                 // Khai's sheet uses 128×160 cells. Treat the logical box as the floor anchor and draw each frame
                 // bottom-centered so transparent padding and attack poses cannot move the hitbox/health bar.
+                // Idle soles sit a few pixels above the cell bottom; nudge down in proportion to scale so feet meet the floor.
                 flip = false;
                 final double srcW = 128;
                 final double srcH = 160;
+                final double feetBelowOpaqueArtSrcPx = 8;
                 double scale = Math.min(drawW / srcW, drawH / srcH);
                 int destW = Math.max(1, (int) Math.round(srcW * scale));
                 int destH = Math.max(1, (int) Math.round(srcH * scale));
                 double rdx = Math.rint(x + (getWidth() - destW) / 2.0);
-                double rdy = Math.rint(y + getHeight() - destH);
+                double feetNudge = feetBelowOpaqueArtSrcPx * (destH / srcH);
+                double rdy = Math.rint(y + getHeight() - destH + feetNudge);
                 gc.save();
                 gc.beginPath();
                 gc.rect(rdx, rdy, destW, destH);
