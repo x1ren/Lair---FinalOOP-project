@@ -17,6 +17,36 @@ Requirements:
 
 If Maven dependencies are not downloaded yet, the first run may take a bit longer.
 
+### Debug: jump straight to a stage
+
+For faster iteration you can skip the title flow and open `GameScene` directly. The run username is fixed to **`debug`**, and the default survivor is **Joseph Jimenez** unless you override it.
+
+Stage numbers are **1-based** (1 = first story stage in `StageCatalog`, same order as the normal run).
+
+**Option A — Maven property (no quoting issues)**
+
+```bash
+mvn javafx:run -Dlair.stage=3
+```
+
+This sets JVM system property `lair.stage`; the JavaFX plugin forwards it via `pom.xml`.
+
+**Option B — application arguments**
+
+```bash
+mvn javafx:run -Dlair.cmd.args="--stage 3"
+```
+
+Optional second flag (must match a `CharacterType` enum name):
+
+```bash
+mvn javafx:run -Dlair.cmd.args="--stage 4 --debug-character ILDE_JAN_FIGUERAS"
+```
+
+Equivalent forms: `--stage=3`, `--debug-character=JOSEPH_JIMENEZ`.
+
+Implementation lives in `org.example.app.LaunchConfig` and `GameContext.enterGameFromDebugShortcut`.
+
 ## Controls (in-game)
 
 | Key | Action |

@@ -72,6 +72,7 @@ Enemy feedback: slowed enemies get a blue tint; bleeding enemies get a red edge;
 Application shell: shared stage reference and high-level navigation between UI screens:
 
 - `GameContext`
+- `LaunchConfig` — optional CLI / system-property shortcuts to skip menus and start `GameScene` at a given **1-based** stage with username `debug` (see `docs/README.md` under *Debug: jump straight to a stage*)
 
 ### `org.example.assets`
 
