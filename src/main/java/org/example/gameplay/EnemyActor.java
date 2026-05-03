@@ -149,6 +149,10 @@ public class EnemyActor extends GameObject {
         this.moving = moving;
     }
 
+    public void setFacing(int facing) {
+        this.facing = facing < 0 ? -1 : 1;
+    }
+
     public void setAttacking(boolean attacking) {
         if (attacking && boss) {
             bossMeleeAnimHoldSec = 0.12;

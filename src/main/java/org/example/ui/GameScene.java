@@ -328,12 +328,7 @@ public class GameScene {
         player.step(dt);
         player.setOnGround(false);
 
-        // First check ground collision
-        if (player.getY() + player.getHeight() >= GROUND_Y) {
-            player.landOn(GROUND_Y);
-        }
-
-        // Then check platform collisions
+        // Resolve stage platforms before the global hard floor so tall/fast drops cannot tunnel through thin floors.
         if (!player.isOnGround()) {
             for (PlatformTile platform : arena.platforms()) {
                 if (player.getVy() >= 0 && CollisionManager.landsOnTop(player, platform, previousBottom)) {
@@ -343,19 +338,20 @@ public class GameScene {
             }
         }
 
-        // Additional check: if player is very close to a platform surface, snap them to it
-        // This handles the case where player walks along a platform
         if (!player.isOnGround() && player.getVy() >= 0) {
             for (PlatformTile platform : arena.platforms()) {
                 double currentBottom = player.getY() + player.getHeight();
                 boolean horizontalOverlap = player.getX() + player.getWidth() > platform.getX()
                         && player.getX() < platform.getX() + platform.getWidth();
-                // If player is within a small range of the platform top, snap them to it
                 if (horizontalOverlap && currentBottom >= platform.getY() && currentBottom <= platform.getY() + 10) {
                     player.landOn(platform.getY());
                     break;
                 }
             }
+        }
+
+        if (!player.isOnGround() && player.getY() + player.getHeight() >= GROUND_Y) {
+            player.landOn(GROUND_Y);
         }
 
         if (!wasOnGround && player.isOnGround()) {
@@ -574,10 +570,31 @@ public class GameScene {
         
         setStatus("Mutated Vendor summons a horde of students!");
     }
+
+    /** Caesar / final Khai are not full melee chasers; inch sideways so they stay readable and follow the fight. */
+    private void repositionStationaryMajorBoss(EnemyActor boss, double dt) {
+        double minX = 20;
+        double maxX = arena.worldWidth() - boss.getWidth() - 20;
+        double cx = player.getCenterX() - boss.getCenterX();
+        if (cx < -12) {
+            boss.setFacing(-1);
+        } else if (cx > 12) {
+            boss.setFacing(1);
+        }
+        double speedCap = boss.isKhaiBossForm() ? 54 : 44;
+        double deadzone = 72;
+        double dx = 0;
+        if (Math.abs(cx) > deadzone) {
+            dx = Math.signum(cx) * Math.min(Math.abs(cx) * 0.16, speedCap) * dt;
+        }
+        boss.moveBy(dx, 0);
+        boss.setX(Math.max(minX, Math.min(maxX, boss.getX())));
+        boss.setMoving(Math.abs(dx) > 0.0001);
+    }
     
     private void updateCaesarHunosBehavior(EnemyActor caesar, double dt) {
-        // Caesar stays in place, only uses physics for gravity
         updateEnemyPhysics(caesar, dt);
+        repositionStationaryMajorBoss(caesar, dt);
         
         // Update casting state
         caesar.updateCasting(dt);
@@ -877,6 +894,7 @@ public class GameScene {
     private void updateKhaiBossBehavior(EnemyActor khai, double dt) {
         // Khai stays stationary, only uses physics for gravity
         updateEnemyPhysics(khai, dt);
+        repositionStationaryMajorBoss(khai, dt);
         
         // Update animation timer
         khai.updateKhaiAnimation(dt);
@@ -1037,12 +1055,6 @@ public class GameScene {
         enemy.stepVertical(dt);
         enemy.setOnGround(false);
 
-        // Check ground collision
-        if (enemy.getY() + enemy.getHeight() >= GROUND_Y) {
-            enemy.landOn(GROUND_Y);
-        }
-
-        // Check platform collisions
         if (!enemy.isOnGround()) {
             for (PlatformTile platform : arena.platforms()) {
                 if (enemy.getVy() >= 0 && CollisionManager.landsOnTop(enemy, platform, previousBottom)) {
@@ -1052,7 +1064,6 @@ public class GameScene {
             }
         }
 
-        // Additional check: if enemy is very close to a platform surface, snap them to it
         if (!enemy.isOnGround() && enemy.getVy() >= 0) {
             for (PlatformTile platform : arena.platforms()) {
                 double currentBottom = enemy.getY() + enemy.getHeight();
@@ -1063,6 +1074,10 @@ public class GameScene {
                     break;
                 }
             }
+        }
+
+        if (!enemy.isOnGround() && enemy.getY() + enemy.getHeight() >= GROUND_Y) {
+            enemy.landOn(GROUND_Y);
         }
     }
 
