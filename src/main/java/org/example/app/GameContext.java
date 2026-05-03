@@ -8,6 +8,7 @@ import org.example.assets.AssetRegistry;
 import org.example.audio.AudioManager;
 import org.example.player.CharacterType;
 import org.example.ui.CharacterSelectScene;
+import org.example.ui.EndingScene;
 import org.example.ui.GameScene;
 import org.example.ui.IntroScene;
 
@@ -42,6 +43,10 @@ public final class GameContext {
 
     public static void showGame(CharacterType character) {
         switchScene(new GameScene(character).getScene());
+    }
+
+    public static void showEnding() {
+        switchScene(new EndingScene().getScene());
     }
 
     public static void switchScene(Scene scene) {

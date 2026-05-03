@@ -93,6 +93,12 @@ public class GameScene {
     private boolean stageBossSpawned;
     private double footstepTimer;
     private boolean deathSoundPlayed;
+    
+    // Batch spawning fields
+    private static final int BATCH_SIZE = 10;
+    private int totalMobsToSpawn;
+    private int mobsSpawned;
+    private boolean batchSpawningActive;
 
     /** Seconds, used for HUD skill strip animation. */
     private double hudAnimTime;
@@ -107,6 +113,9 @@ public class GameScene {
     private boolean finished;
     private boolean victory;
     private boolean paused;
+    
+    private double victoryOverlayTimer;
+    private boolean victoryShakeTriggered;
 
     /** False Sir Khai appears human first; morphs to the zombified host sheet after enough damage. */
     private boolean khaiMimicMorphTriggered;
@@ -188,13 +197,34 @@ public class GameScene {
         hudAnimTime += dt;
 
         if (finished) {
-            if (input.isJustPressed(KeyCode.ESCAPE)) {
-                exitToCharacterSelect();
-                return;
-            }
-            if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
-                exitToCharacterSelect();
-                return;
+            if (victory) {
+                // Victory sequence: show overlay for 5 seconds, shake, then transition to ending
+                victoryOverlayTimer += dt;
+                
+                if (victoryOverlayTimer >= 5.0 && !victoryShakeTriggered) {
+                    // Start screen shake
+                    screenShakeTimer = 2.0;
+                    screenShakeIntensity = 18;
+                    victoryShakeTriggered = true;
+                }
+                
+                if (victoryOverlayTimer >= 7.0) {
+                    // Transition to ending scene
+                    GameContext.audio().stopBackgroundMusic();
+                    loop.stop();
+                    GameContext.showEnding();
+                    return;
+                }
+            } else {
+                // Defeat: allow return to character select
+                if (input.isJustPressed(KeyCode.ESCAPE)) {
+                    exitToCharacterSelect();
+                    return;
+                }
+                if (input.isJustPressed(KeyCode.ENTER) || input.isJustPressed(KeyCode.SPACE)) {
+                    exitToCharacterSelect();
+                    return;
+                }
             }
             input.endFrame();
             return;
@@ -385,6 +415,10 @@ public class GameScene {
                 updateCaesarHunosBehavior(enemy, dt);
             } else if (enemy.isKhaiBossForm()) {
                 updateKhaiBossBehavior(enemy, dt);
+            } else if (enemy.isVendor()) {
+                updateVendorBehavior(enemy, dt);
+            } else if (enemy.isSecurityGuard()) {
+                updateSecurityGuardBehavior(enemy, dt);
             } else {
                 updateEnemyPhysics(enemy, dt);
                 enemy.chase(player, dt, 20, arena.worldWidth() - enemy.getWidth() - 20,
@@ -423,6 +457,104 @@ public class GameScene {
         }
     }
     
+    private void updateSecurityGuardBehavior(EnemyActor guard, double dt) {
+        // Update dash state
+        guard.updateDash(dt);
+        
+        // Physics
+        updateEnemyPhysics(guard, dt);
+        
+        // Update dash cooldown
+        double currentCooldown = guard.getSecurityGuardDashCooldown();
+        guard.setSecurityGuardDashCooldown(Math.max(0, currentCooldown - dt));
+        
+        // Check if ready to dash
+        double distanceToPlayer = Math.abs(guard.getCenterX() - player.getCenterX());
+        if (!guard.isDashing() && guard.getSecurityGuardDashCooldown() <= 0 && distanceToPlayer > 100 && distanceToPlayer < 600) {
+            // Start dash towards player
+            double direction = player.getCenterX() > guard.getCenterX() ? 1 : -1;
+            guard.startDash(450 * direction, 0.6); // Fast dash for 0.6 seconds
+            guard.setSecurityGuardDashCooldown(3.5); // Dash every 3.5 seconds
+            setStatus("Security Guard dashes!");
+        }
+        
+        if (guard.isDashing()) {
+            // Move at dash speed
+            double dashSpeed = guard.getDashSpeed();
+            guard.moveBy(dashSpeed * dt, 0);
+            guard.setX(Math.max(20, Math.min(arena.worldWidth() - guard.getWidth() - 20, guard.getX())));
+            
+            // Check collision during dash - deals damage
+            if (CollisionManager.intersects(guard, player)) {
+                applyDamage(30); // Higher damage during dash
+                guard.setAttackCooldown(0.5);
+                guard.setAttacking(true);
+            }
+        } else {
+            // Normal chase behavior with increased speed
+            double normalSpeed = guard.getSpeed() * 1.5; // 50% faster than normal
+            double cx = player.getCenterX() - guard.getCenterX();
+            double direction = Math.signum(cx);
+            guard.setMoving(Math.abs(cx) > 0.5);
+            guard.moveBy(direction * normalSpeed * dt, 0);
+            guard.setX(Math.max(20, Math.min(arena.worldWidth() - guard.getWidth() - 20, guard.getX())));
+            
+            // Normal melee attack
+            if (guard.getAttackCooldown() <= 0 && CollisionManager.intersects(guard, player)) {
+                applyDamage(22);
+                guard.setAttackCooldown(0.8 * guard.getTuningState().attackCooldownMultiplier());
+                guard.setAttacking(true);
+            }
+        }
+    }
+    
+    private void updateVendorBehavior(EnemyActor vendor, double dt) {
+        // Vendor chases player like normal boss
+        updateEnemyPhysics(vendor, dt);
+        vendor.chase(player, dt, 20, arena.worldWidth() - vendor.getWidth() - 20,
+                combatProfile.enemySlowMoveFactor());
+        
+        // Update summon cooldown
+        double currentCooldown = vendor.getVendorSummonCooldown();
+        vendor.setVendorSummonCooldown(Math.max(0, currentCooldown - dt));
+        
+        // Summon students when cooldown is ready
+        if (vendor.getVendorSummonCooldown() <= 0) {
+            summonStudents(vendor);
+            vendor.setVendorSummonCooldown(12.0); // Summon every 12 seconds
+        }
+        
+        // Normal melee attack
+        if (vendor.getAttackCooldown() <= 0 && CollisionManager.intersects(vendor, player)) {
+            applyDamage(22);
+            vendor.setAttackCooldown(0.8 * vendor.getTuningState().attackCooldownMultiplier());
+            vendor.setAttacking(true);
+        }
+    }
+    
+    private void summonStudents(EnemyActor vendor) {
+        int summonCount = 30; // 30 students
+        double vendorX = vendor.getCenterX();
+        StageDefinition stage = stages.get(stageIndex);
+        
+        for (int i = 0; i < summonCount; i++) {
+            // Spawn students around the vendor in a spread pattern
+            double offsetX = (random.nextDouble() - 0.5) * 400; // Spread across 400px
+            double x = Math.max(50, Math.min(arena.worldWidth() - 92, vendorX + offsetX));
+            
+            // Alternate between male and female students
+            String spriteId = random.nextBoolean() ? "enemy.student_m" : "enemy.student_f";
+            
+            // Spawn high above so they fall down
+            EnemyActor student = new EnemyActor("Student", x, 50, 42, 54,
+                    stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
+            applyEnemySprite(student, spriteId);
+            enemies.add(student);
+        }
+        
+        setStatus("Mutated Vendor summons a horde of students!");
+    }
+    
     private void updateCaesarHunosBehavior(EnemyActor caesar, double dt) {
         // Caesar stays in place, only uses physics for gravity
         updateEnemyPhysics(caesar, dt);
@@ -442,18 +574,12 @@ public class GameScene {
                 // Use ultimate abilities - more frequent attacks
                 String ultimateType = "ultimate" + caesar.getUltimatePhase();
                 caesar.startCasting(ultimateType);
-                caesar.setSkillCooldown(2.5); // Reduced from 3.5
-                
-                // Keep using idle animation during casting (no skill stripe images)
-                // The purple bullet projectiles will be spawned when casting completes
+                caesar.setSkillCooldown(2.5);
             } else {
                 // Use regular skills (randomize between skill1 and skill2)
                 String skillType = random.nextBoolean() ? "skill1" : "skill2";
                 caesar.startCasting(skillType);
-                caesar.setSkillCooldown(1.8); // Reduced from 2.5
-                
-                // Keep using idle animation during casting (no skill stripe images)
-                // The purple bullet projectiles will be spawned when casting completes
+                caesar.setSkillCooldown(1.8);
             }
         }
         
@@ -469,6 +595,13 @@ public class GameScene {
         double centerX = caesar.getCenterX();
         double centerY = caesar.getCenterY();
         
+        // Stage 3 (index 2): Use varied purple bullet patterns instead of skill animations
+        if (stageIndex == 2) {
+            fireCaesarBulletPattern(centerX, centerY, skillType);
+            return;
+        }
+        
+        // Other stages: Use original skill-based attacks
         if ("skill1".equals(skillType)) {
             // Wave Attack - multiple horizontal waves with slight delays
             int waveCount = 15;
@@ -522,6 +655,167 @@ public class GameScene {
             caesar.toggleUltimatePhase();
             setStatus("Caesar Hunos creates a Spiral Storm!");
         }
+    }
+    
+    private void fireCaesarBulletPattern(double centerX, double centerY, String skillType) {
+        // Randomly select one of several varied bullet patterns
+        int patternChoice = random.nextInt(8);
+        
+        switch (patternChoice) {
+            case 0 -> fireScatteredBurst(centerX, centerY);
+            case 1 -> fireCircularSpread(centerX, centerY);
+            case 2 -> fireRandomChaos(centerX, centerY);
+            case 3 -> fireTightCluster(centerX, centerY);
+            case 4 -> fireWideArc(centerX, centerY);
+            case 5 -> fireAsymmetricSpray(centerX, centerY);
+            case 6 -> fireDoubleHelix(centerX, centerY);
+            case 7 -> fireRandomBursts(centerX, centerY);
+        }
+    }
+    
+    // Pattern 1: Scattered burst with random angles and speeds
+    private void fireScatteredBurst(double centerX, double centerY) {
+        int count = 12 + random.nextInt(8);
+        for (int i = 0; i < count; i++) {
+            double angle = random.nextDouble() * Math.PI * 2;
+            double speed = 150 + random.nextDouble() * 180;
+            double vx = Math.cos(angle) * speed;
+            double vy = Math.sin(angle) * speed;
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx, vy, 12, "bullet"));
+        }
+        setStatus("Caesar fires a scattered burst!");
+    }
+    
+    // Pattern 2: Circular spread with even distribution
+    private void fireCircularSpread(double centerX, double centerY) {
+        int count = 16 + random.nextInt(8);
+        double baseSpeed = 200 + random.nextDouble() * 100;
+        for (int i = 0; i < count; i++) {
+            double angle = (i * Math.PI * 2) / count;
+            double speedVariation = 0.8 + random.nextDouble() * 0.4;
+            double vx = Math.cos(angle) * baseSpeed * speedVariation;
+            double vy = Math.sin(angle) * baseSpeed * speedVariation;
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx, vy, 12, "bullet"));
+        }
+        setStatus("Caesar unleashes a circular spread!");
+    }
+    
+    // Pattern 3: Random chaos - completely unpredictable
+    private void fireRandomChaos(double centerX, double centerY) {
+        int count = 20 + random.nextInt(15);
+        for (int i = 0; i < count; i++) {
+            double angle = random.nextDouble() * Math.PI * 2;
+            double speed = 100 + random.nextDouble() * 250;
+            double vx = Math.cos(angle) * speed;
+            double vy = Math.sin(angle) * speed;
+            // Random spawn offset for extra chaos
+            double offsetX = (random.nextDouble() - 0.5) * 60;
+            double offsetY = (random.nextDouble() - 0.5) * 60;
+            bossSkills.add(new BossSkill("Bullet", centerX + offsetX, centerY + offsetY, vx, vy, 12, "bullet"));
+        }
+        setStatus("Caesar creates chaotic bullet spray!");
+    }
+    
+    // Pattern 4: Tight cluster aimed at player
+    private void fireTightCluster(double centerX, double centerY) {
+        int count = 8 + random.nextInt(5);
+        double playerX = player.getCenterX();
+        double playerY = player.getCenterY();
+        double baseAngle = Math.atan2(playerY - centerY, playerX - centerX);
+        
+        for (int i = 0; i < count; i++) {
+            double angleSpread = (random.nextDouble() - 0.5) * 0.6; // Tight spread
+            double angle = baseAngle + angleSpread;
+            double speed = 220 + random.nextDouble() * 80;
+            double vx = Math.cos(angle) * speed;
+            double vy = Math.sin(angle) * speed;
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx, vy, 14, "bullet"));
+        }
+        setStatus("Caesar fires a focused cluster!");
+    }
+    
+    // Pattern 5: Wide arc covering large area
+    private void fireWideArc(double centerX, double centerY) {
+        int count = 18 + random.nextInt(10);
+        double startAngle = random.nextDouble() * Math.PI * 2;
+        double arcSize = Math.PI * 1.2 + random.nextDouble() * 0.8;
+        
+        for (int i = 0; i < count; i++) {
+            double angle = startAngle + (i * arcSize / count);
+            double speed = 180 + random.nextDouble() * 120;
+            double vx = Math.cos(angle) * speed;
+            double vy = Math.sin(angle) * speed;
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx, vy, 12, "bullet"));
+        }
+        setStatus("Caesar sweeps a wide arc!");
+    }
+    
+    // Pattern 6: Asymmetric spray - more bullets in one direction
+    private void fireAsymmetricSpray(double centerX, double centerY) {
+        int mainCount = 15 + random.nextInt(8);
+        int sideCount = 5 + random.nextInt(4);
+        double mainAngle = random.nextDouble() * Math.PI * 2;
+        
+        // Main direction
+        for (int i = 0; i < mainCount; i++) {
+            double angleSpread = (random.nextDouble() - 0.5) * 1.2;
+            double angle = mainAngle + angleSpread;
+            double speed = 200 + random.nextDouble() * 100;
+            double vx = Math.cos(angle) * speed;
+            double vy = Math.sin(angle) * speed;
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx, vy, 12, "bullet"));
+        }
+        
+        // Opposite side (fewer bullets)
+        for (int i = 0; i < sideCount; i++) {
+            double angleSpread = (random.nextDouble() - 0.5) * 0.8;
+            double angle = mainAngle + Math.PI + angleSpread;
+            double speed = 150 + random.nextDouble() * 80;
+            double vx = Math.cos(angle) * speed;
+            double vy = Math.sin(angle) * speed;
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx, vy, 12, "bullet"));
+        }
+        setStatus("Caesar fires an asymmetric spray!");
+    }
+    
+    // Pattern 7: Double helix pattern
+    private void fireDoubleHelix(double centerX, double centerY) {
+        int count = 12;
+        double baseSpeed = 220;
+        
+        for (int i = 0; i < count; i++) {
+            double angle1 = (i * Math.PI * 2) / count;
+            double angle2 = angle1 + Math.PI;
+            
+            double vx1 = Math.cos(angle1) * baseSpeed;
+            double vy1 = Math.sin(angle1) * baseSpeed;
+            double vx2 = Math.cos(angle2) * baseSpeed;
+            double vy2 = Math.sin(angle2) * baseSpeed;
+            
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx1, vy1, 12, "bullet"));
+            bossSkills.add(new BossSkill("Bullet", centerX, centerY, vx2, vy2, 12, "bullet"));
+        }
+        setStatus("Caesar creates a double helix!");
+    }
+    
+    // Pattern 8: Multiple random bursts from different positions
+    private void fireRandomBursts(double centerX, double centerY) {
+        int burstCount = 3 + random.nextInt(2);
+        
+        for (int burst = 0; burst < burstCount; burst++) {
+            double burstX = centerX + (random.nextDouble() - 0.5) * 100;
+            double burstY = centerY + (random.nextDouble() - 0.5) * 80;
+            int bulletsPerBurst = 5 + random.nextInt(4);
+            
+            for (int i = 0; i < bulletsPerBurst; i++) {
+                double angle = random.nextDouble() * Math.PI * 2;
+                double speed = 180 + random.nextDouble() * 120;
+                double vx = Math.cos(angle) * speed;
+                double vy = Math.sin(angle) * speed;
+                bossSkills.add(new BossSkill("Bullet", burstX, burstY, vx, vy, 12, "bullet"));
+            }
+        }
+        setStatus("Caesar fires multiple bursts!");
     }
     
     private void updateBossSkills(double dt) {
@@ -921,6 +1215,11 @@ public class GameScene {
         khaiMimicMorphTriggered = false;
         arena.exitMarker().setActive(false);
         arena.exitMarker().setLabel(newIndex == stages.size() - 1 ? "FINAL" : "NEXT");
+        
+        // Reset batch spawning state
+        batchSpawningActive = false;
+        totalMobsToSpawn = 0;
+        mobsSpawned = 0;
 
         StageDefinition stage = stages.get(stageIndex);
         arena.prepareStage(stage, stageIndex, player, loadBackdrop(stage));
@@ -935,8 +1234,21 @@ public class GameScene {
     }
 
     private void spawnMobWave(StageDefinition stage) {
-        for (int i = 0; i < stage.enemyCount(); i++) {
-            double x = arena.mobSpawnX(i, stage.enemyCount());
+        // Initialize batch spawning
+        totalMobsToSpawn = stage.enemyCount();
+        mobsSpawned = 0;
+        batchSpawningActive = true;
+        
+        // Spawn first batch
+        spawnNextBatch(stage);
+    }
+    
+    private void spawnNextBatch(StageDefinition stage) {
+        int batchStart = mobsSpawned;
+        int batchEnd = Math.min(mobsSpawned + BATCH_SIZE, totalMobsToSpawn);
+        
+        for (int i = batchStart; i < batchEnd; i++) {
+            double x = arena.mobSpawnX(i, totalMobsToSpawn);
             // Spawn enemies high above so they fall and land on platforms
             EnemyActor enemy = new EnemyActor(stage.enemyName(), x, 50, 42, 54,
                     stage.enemyHealth(), stage.enemyHealth(), stage.enemySpeed(), stage.tint(), false);
@@ -945,6 +1257,14 @@ public class GameScene {
             }
             enemies.add(enemy);
         }
+        
+        mobsSpawned = batchEnd;
+        
+        if (mobsSpawned >= totalMobsToSpawn) {
+            batchSpawningActive = false;
+        }
+        
+        setStatus("Wave " + ((mobsSpawned / BATCH_SIZE)) + " / " + ((totalMobsToSpawn + BATCH_SIZE - 1) / BATCH_SIZE) + " spawned!");
     }
 
     private void spawnBoss(StageDefinition stage) {
@@ -981,10 +1301,12 @@ public class GameScene {
         // Mark Caesar Hunos for special behavior
         if ("Caesar Hunos".equals(stage.bossName())) {
             enemy.markAsCaesarHunos();
-        } else if ("LAIR Mimic (False Sir Khai)".equals(stage.bossName()) ||
-                   "Security Guard".equals(stage.bossName()) ||
-                   "Mutated Vendor".equals(stage.bossName())) {
+        } else if ("LAIR Mimic (False Sir Khai)".equals(stage.bossName())) {
             enemy.markAsSirKhai();
+        } else if ("Security Guard".equals(stage.bossName())) {
+            enemy.markAsSecurityGuard();
+        } else if ("Mutated Vendor".equals(stage.bossName())) {
+            enemy.markAsVendor();
         } else if ("Khai (Boss Form)".equals(stage.bossName())) {
             enemy.markAsKhaiBossForm();
         }
@@ -1021,6 +1343,11 @@ public class GameScene {
                 idle = new AnimationStrip(0, 0, 8, 5);
                 walk = new AnimationStrip(1, 0, 8, 7);
                 attack = new AnimationStrip(2, 0, 12, 10);
+                enemy.setSpriteSheet(sheet, idle, walk, attack);
+                // Set dash animation (row 1 for dash)
+                AnimationStrip dash = new AnimationStrip(1, 0, 8, 12);
+                enemy.setDashStrip(dash);
+                return;
             }
             case "enemy.vendor" -> {
                 sheet = assets.sheet(spriteId, 64, 64);
@@ -1069,6 +1396,12 @@ public class GameScene {
     }
 
     private void handleStageCleared(StageDefinition stage) {
+        // Check if we need to spawn the next batch of mobs
+        if (batchSpawningActive && mobsSpawned < totalMobsToSpawn) {
+            spawnNextBatch(stage);
+            return;
+        }
+        
         if (stage.hasBoss() && !stageBossSpawned) {
             spawnBoss(stage);
             stageIntroTimer = 2.8;
@@ -1166,7 +1499,11 @@ public class GameScene {
         }
 
         if (finished) {
-            hudRenderer.renderEndOverlay(victory);
+            // Only show overlay if victory shake hasn't started yet
+            // For defeat, always show overlay
+            if (!victory || !victoryShakeTriggered) {
+                hudRenderer.renderEndOverlay(victory);
+            }
         } else if (paused) {
             hudRenderer.renderPauseOverlay();
         }

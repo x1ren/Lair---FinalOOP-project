@@ -47,13 +47,6 @@ public final class AssetRegistry {
         registerImage("character.sir_khai", "/assets/stages/enemies/khai_with_zombified.png");
         registerImage("enemy.khai_mimic", "/assets/stages/enemies/khai_boss_mimic.png");
         registerImage("enemy.caesar_hunos", "/assets/stages/enemies/CaesarHunos_Idle.png");
-        registerImage("boss.caesar.casting_skill1", "/assets/stages/enemies/Casting_Skill1.png");
-        registerImage("boss.caesar.casting_skill2", "/assets/stages/enemies/Casting_Skill2.png");
-        registerImage("boss.caesar.casting_ultimate", "/assets/stages/enemies/Casting_Ultimate.png");
-        registerImage("boss.caesar.skill1_effect", "/assets/stages/enemies/Skill1_ThunderSmoke.png");
-        registerImage("boss.caesar.skill2_effect", "/assets/stages/enemies/Skill2_LaserEye.png");
-        registerImage("boss.caesar.ultimate_phase1", "/assets/stages/enemies/Ultimate_Phase1.png");
-        registerImage("boss.caesar.ultimate_phase2", "/assets/stages/enemies/Ultimate_Phase2.png");
         registerImage("boss.caesar.hunos_idle", "/assets/stages/enemies/Hunos_Idle.png");
         registerImage("boss.caesar.hunos_walk", "/assets/stages/enemies/Hunos_Walk.png");
         
@@ -113,6 +106,9 @@ public final class AssetRegistry {
         registerAudio("audio.weapon.bacus_sniper_1", "/assets/gun/bacus_sniper_1.mp3");
         registerAudio("audio.weapon.bacus_sniper_2", "/assets/gun/bacus_sniper_2.mp3");
         registerAudio("audio.weapon.bacus_sniper_3", "/assets/gun/bacus_sniper_3.mp3");
+
+        registerAudio("audio.ending.bgm", "/assets/ending/Ending.mp3");
+        registerAudio("audio.ending.gunshot", "/assets/ending/gunshot.mp3");
     }
 
     private void registerImage(String id, String path) {
