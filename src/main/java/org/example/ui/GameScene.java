@@ -22,6 +22,7 @@ import org.example.gameplay.EntityManager;
 import org.example.gameplay.HitPayload;
 import org.example.gameplay.PlatformTile;
 import org.example.gameplay.PlayerActor;
+import org.example.gameplay.Potion;
 import org.example.gameplay.Projectile;
 import org.example.gameplay.SlowConfig;
 import org.example.gameplay.SpikeEffect;
@@ -77,6 +78,7 @@ public class GameScene {
     private final EntityManager<BossSkill> bossSkills = new EntityManager<>();
     private final EntityManager<SpikeEffect> spikeEffects = new EntityManager<>();
     private final EntityManager<SplittingSpike> splittingSpikes = new EntityManager<>();
+    private final EntityManager<Potion> potions = new EntityManager<>();
     private final List<StageDefinition> stages = StageCatalog.buildStoryStages();
     private final StageArena arena = new StageArena(W, GROUND_Y);
     private final GameVisualRenderer visualRenderer = new GameVisualRenderer(gc, assets, W, H, GROUND_Y);
@@ -88,6 +90,7 @@ public class GameScene {
     private int ammo;
     private int hp;
     private final int maxHp;
+    private int potionCount;
 
     private double shootCooldown;
     private double reloadTimer;
@@ -285,6 +288,7 @@ public class GameScene {
         updateSpikeEffects(dt);
         updateSplittingSpikes(dt);
         updateEnemies(dt);
+        updatePotions(dt);
         updateStageExit();
         updateCamera();
         updateScreenShake(dt);
@@ -342,6 +346,10 @@ public class GameScene {
 
         if (input.isJustPressed(KeyCode.Q)) {
             activateAbility();
+        }
+
+        if (input.isJustPressed(KeyCode.DIGIT4) || input.isJustPressed(KeyCode.NUMPAD4)) {
+            usePotion();
         }
 
         if (input.isMouseLeftDown() && shootCooldown <= 0 && reloadTimer <= 0) {
@@ -445,7 +453,18 @@ public class GameScene {
             }
         }
 
-        enemies.removeIf(EnemyActor::isDefeated);
+        enemies.removeIf(enemy -> {
+            if (enemy.isDefeated()) {
+                // 10% chance to drop a potion
+                if (random.nextDouble() < 0.10) {
+                    double potionX = enemy.getCenterX() - 12;
+                    double potionY = enemy.getY() + enemy.getHeight() / 2;
+                    potions.add(new Potion(potionX, potionY));
+                }
+                return true;
+            }
+            return false;
+        });
     }
 
     private void updateEnemies(double dt) {
@@ -1067,6 +1086,37 @@ public class GameScene {
         screenShakeTimer = Math.max(0, screenShakeTimer - dt);
     }
 
+    private void updatePotions(double dt) {
+        for (Potion potion : potions) {
+            potion.update(dt);
+            
+            // Check if player picks up the potion
+            if (CollisionManager.intersects(player, potion)) {
+                potionCount++;
+                potions.removeIf(p -> p == potion);
+                setStatus("Picked up a potion! Press 4 to use");
+                break;
+            }
+        }
+    }
+
+    private void usePotion() {
+        if (potionCount <= 0) {
+            setStatus("No potions available.");
+            return;
+        }
+        
+        if (hp >= maxHp) {
+            setStatus("Health is already full.");
+            return;
+        }
+        
+        potionCount--;
+        int healAmount = (int) Math.round(maxHp * 0.15);
+        hp = Math.min(maxHp, hp + healAmount);
+        setStatus("Potion used! Restored " + healAmount + " HP. (" + potionCount + " remaining)");
+    }
+
     private void updateEnemyPhysics(EnemyActor enemy, double dt) {
         double previousBottom = enemy.getY() + enemy.getHeight();
         enemy.setVy(enemy.getVy() + GRAVITY * dt);
@@ -1559,11 +1609,12 @@ public class GameScene {
         bossSkills.renderAll(gc);
         spikeEffects.renderAll(gc);
         splittingSpikes.renderAll(gc);
+        potions.renderAll(gc);
         
         gc.restore();
         gc.restore();
         
-        hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo,
+        hudRenderer.renderHud(stage, character, weapon, hp, maxHp, ammo, potionCount,
                 character.getSkillName(), character.getSkillEffectSummary(), "[Q]",
                 getAbilityMeterFill(), getAbilityStatusText(), getReloadStatusText(),
                 getActiveEffectLines(),

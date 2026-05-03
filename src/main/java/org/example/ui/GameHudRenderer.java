@@ -26,7 +26,7 @@ final class GameHudRenderer {
     }
 
     void renderHud(StageDefinition stage, CharacterType character, Weapon weapon,
-                   int hp, int maxHp, int ammo,
+                   int hp, int maxHp, int ammo, int potionCount,
                    String skillName, String skillEffectSummary, String skillKeyHint,
                    double abilityFill, String abilityStatus,
                    String reloadStatus,
@@ -46,8 +46,12 @@ final class GameHudRenderer {
                 Color.color(0.10, 0.76, 0.42, 0.72));
         drawPixelPanel(viewportWidth / 2.0 - 190, panelY, 380, 52, Color.color(0.01, 0.03, 0.05, 0.78),
                 Color.color(accentR, accentG, accentB, 0.70));
-        drawPixelPanel(viewportWidth - 224, panelY, 204, 104, Color.color(0.01, 0.03, 0.05, 0.84),
+        // Ammo panel (left)
+        drawPixelPanel(viewportWidth - 428, panelY, 204, 104, Color.color(0.01, 0.03, 0.05, 0.84),
                 Color.color(0.10, 0.76, 0.42, 0.72));
+        // Potion panel (right, beside ammo)
+        drawPixelPanel(viewportWidth - 214, panelY, 194, 104, Color.color(0.01, 0.03, 0.05, 0.84),
+                Color.color(0.95, 0.2, 0.2, 0.72));
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
         gc.setFill(Color.WHITE);
@@ -88,17 +92,25 @@ final class GameHudRenderer {
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
         gc.setFill(Color.WHITE);
-        gc.fillText("AMMO", viewportWidth - 204, panelY + 28);
-        gc.fillText(ammo + "/" + weapon.getMagazineSize(), viewportWidth - 204, panelY + 48);
-        gc.fillText("RELOAD", viewportWidth - 204, panelY + 72);
-        gc.fillText(reloadStatus, viewportWidth - 204, panelY + 92);
+        gc.fillText("AMMO", viewportWidth - 408, panelY + 28);
+        gc.fillText(ammo + "/" + weapon.getMagazineSize(), viewportWidth - 408, panelY + 48);
+        gc.fillText("RELOAD", viewportWidth - 408, panelY + 72);
+        gc.fillText(reloadStatus, viewportWidth - 408, panelY + 92);
+        
+        // Potion display (beside ammo panel)
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 12));
+        gc.setFill(Color.color(0.95, 0.3, 0.3));
+        gc.fillText("POTION  [4]", viewportWidth - 194, panelY + 28);
+        gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 18));
+        gc.setFill(Color.WHITE);
+        gc.fillText("x" + potionCount, viewportWidth - 194, panelY + 58);
 
         renderActiveEffectsPanel(activeEffectLines, stageDamageMultiplier,
                 playerDashTimer, playerDashCooldownTimer);
 
         gc.setFont(Font.font("Monospaced", FontWeight.BOLD, 9));
         gc.setFill(Color.color(0.55, 0.62, 0.58));
-        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  E dash  |  R reload  |  Space jump  |  Esc pause",
+        gc.fillText("Controls: WASD/arrows  |  LMB shoot  |  Q skill  |  E dash  |  4 potion  |  R reload  |  Space jump  |  Esc pause",
                 20, viewportHeight - 12);
 
         if (exitOpen) {

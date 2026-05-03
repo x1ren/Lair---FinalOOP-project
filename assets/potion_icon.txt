@@ -1,0 +1,26 @@
+Potion Icon Asset Placeholder
+==============================
+
+This file represents the potion icon asset for the game.
+The actual potion visual is rendered programmatically in the Potion.java class.
+
+Visual Description:
+- A small red health potion bottle (24x24 pixels)
+- Dark red glass bottle with a cork/cap
+- Bright red liquid inside
+- White highlight/shine effect
+- Pulsing glow animation
+- Floating animation (moves up and down)
+
+The potion is rendered using JavaFX GraphicsContext with the following features:
+1. Outer glow effect (pulsing red)
+2. Bottle shape (dark red rounded rectangle)
+3. Cork/cap (brown rectangle at top)
+4. Liquid inside (bright red)
+5. Highlight shine (white oval)
+6. Sparkle effect (pulsing white pixel)
+
+Drop Rate: 10% chance when any enemy is defeated
+Effect: Restores 15% of player's maximum health
+Usage: Press '4' key to consume a potion
+Persistence: Potions remain in inventory across all stages
