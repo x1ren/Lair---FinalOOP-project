@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Reads and writes {@link LeaderboardEntry} rows as CSV lines under {@code ~/.lair/leaderboard.csv}.
+ * Reads and writes {@link LeaderboardEntry} rows as CSV lines under the project directory:
+ * {@code <repo>/data/leaderboard.csv} (resolved from {@code user.dir}). Gitignored at {@code /data/}.
  * Usernames are restricted to characters that do not require CSV quoting (enforced at input).
  */
 public final class LeaderboardFileStorage {
@@ -27,10 +28,13 @@ public final class LeaderboardFileStorage {
         return filePath;
     }
 
+    /**
+     * Project-local file: {@code <working-directory>/data/leaderboard.csv}.
+     * Run the game from the repo root so scores stay in this folder (ignored by git).
+     */
     public static Path defaultFilePath() {
-        String home = System.getProperty("user.home");
-        Path dir = Path.of(home, ".lair");
-        return dir.resolve(FILENAME);
+        Path root = Path.of(System.getProperty("user.dir"));
+        return root.resolve("data").resolve(FILENAME);
     }
 
     public List<LeaderboardEntry> loadAll() throws IOException {
