@@ -484,18 +484,26 @@ public class EnemyActor extends GameObject {
                 spriteSheet.drawFramePartial(gc, row, column, dx, dy, drawW, drawH, flip,
                         0, 0, 120, 107);
             } else if (isKhaiBossForm && spriteSheet.frameWidth() == 128 && spriteSheet.frameHeight() == 128) {
+                // Sheet art is asymmetric; mirroring via flipX splits limbs (ghost slabs at screen edges). Draw
+                // left-authored frames only. Preserve cell aspect when scaling so the torso is not stretched into a band.
+                boolean flip = false;
+                double srcW = 128;
+                double srcH = row == 0 ? 89 : 128;
+                double cropY = row == 0 ? 39 : 0;
+                double scale = Math.min(drawW / srcW, drawH / srcH);
+                double destW = srcW * scale;
+                double destH = srcH * scale;
                 double nudgeCell = khaiBossFormAnchorOffsetCellPx(row, column);
-                double scaleX = drawW / 128.0;
-                double nudgeScreen = nudgeCell * scaleX;
-                dx += flip ? -nudgeScreen : nudgeScreen;
+                double nudgeScreen = nudgeCell * scale;
+                double dx = x + (getWidth() - destW) / 2.0 + nudgeScreen;
+                double dy = y + getHeight() - destH;
                 dx = Math.round(dx);
                 dy = Math.round(dy);
-                // Row 0 idle art mostly sits below y≈39; trimming removes empty headroom that amplified bobbing when scaled.
                 if (row == 0) {
-                    spriteSheet.drawFramePartial(gc, row, column, dx, dy, drawW, drawH, flip,
-                            0, 39, 128, 89);
+                    spriteSheet.drawFramePartial(gc, row, column, dx, dy, destW, destH, flip,
+                            0, cropY, srcW, srcH);
                 } else {
-                    spriteSheet.drawFrame(gc, row, column, dx, dy, drawW, drawH, flip);
+                    spriteSheet.drawFrame(gc, row, column, dx, dy, destW, destH, flip);
                 }
             } else {
                 spriteSheet.drawFrame(gc, row, column, dx, dy, drawW, drawH, flip);
